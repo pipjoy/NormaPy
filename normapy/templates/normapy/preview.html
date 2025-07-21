@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Vista previa de importación – NormaPy</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h2 { margin-top: 30px; }
+        .check { color: green; }
+        .warn { color: orange; }
+        .error { color: red; }
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <h1>Vista previa de importación – NormaPy</h1>
+
+    <p>
+        <strong>Subir archivo CSV o Excel</strong>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Subir archivo</button>
+        </form>
+    </p>
+
+    {% if mensaje %}
+        <div class="alert alert-success">
+            {{ mensaje }}
+        </div>
+    {% endif %}
+
+    <h2>Resumen de mapeo de columnas (editable)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Columna original</th>
+                <th>Campo detectado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for campo, col in mapeo.items %}
+                <tr>
+                    <td>{{ col }}</td>
+                    <td>{{ campo }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Vista previa de los datos normalizados</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>SKU</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Marca</th>
+                <th>Stock</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for producto in preview %}
+                <tr>
+                    <td>{{ producto.sku }}</td>
+                    <td>{{ producto.nombre }}</td>
+                    <td>{{ producto.precio }}</td>
+                    <td>{{ producto.marca }}</td>
+                    <td>{{ producto.stock }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if preview %}
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" name="confirmar" value="1">Confirmar importación</button>
+        </form>
+    {% else %}
+        <p>No hay datos para mostrar. Por favor sube un archivo.</p>
+    {% endif %}
+
+    {% if acciones.defaults %}
+        <h2>Advertencias</h2>
+        <ul>
+            {% for campo in acciones.defaults %}
+                <li class="warn">⚠ Se asignó valor por defecto al campo: <strong>{{ campo }}</strong></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+</body>
+</html>

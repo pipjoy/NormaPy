@@ -1,0 +1,131 @@
+{
+  "global": {
+    "sku": {
+      "en": ["sku", "product_id", "item_id", "code", "product_code", "ref_code", "model"],
+      "es": ["sku", "codigo_producto", "id_producto", "codigo", "referencia", "codigo_item"],
+      "pt": ["sku", "codigo_produto", "id_produto", "referencia", "codigo_item"],
+      "it": ["sku", "codice_prodotto", "id_prodotto", "codice"],
+      "zh": ["sku", "产品代码", "商品编号"]
+    },
+    "name": {
+      "en": ["name", "product_name", "title", "item_name"],
+      "es": ["nombre", "nombre_producto", "titulo", "producto", "nombre_item"],
+      "pt": ["nome", "nome_produto", "titulo"],
+      "it": ["nome", "nome_prodotto", "titolo"],
+      "zh": ["名称", "产品名称", "标题"]
+    },
+    "price": {
+      "en": ["price", "cost", "amount", "unit_price", "unit_cost", "retail_price", "sale_price"],
+      "es": ["precio", "costo", "importe", "precio_unitario", "precio_venta", "precio_regular"],
+      "pt": ["preço", "custo", "quantia", "preço_unitário", "preço_venda", "preço_regular"],
+      "it": ["prezzo", "costo", "importo", "prezzo_unitario", "prezzo_di_vendita"],
+      "zh": ["价格", "成本", "金额", "单价", "零售价", "售价"]
+    },
+    "brand": {
+      "en": ["brand", "manufacturer", "company", "supplier", "product_brand"],
+      "es": ["marca", "fabricante", "empresa", "proveedor", "marca_producto"],
+      "pt": ["marca", "fabricante", "empresa", "fornecedor"],
+      "it": ["marca", "produttore", "azienda", "fornitore"],
+      "zh": ["品牌", "制造商", "公司", "供应商"]
+    },
+    "stock": {
+      "en": ["stock", "inventory", "quantity", "available", "inventory_quantity", "quantity_available"],
+      "es": ["stock", "inventario", "cantidad", "disponible", "cantidad_disponible"],
+      "pt": ["estoque", "inventário", "quantidade", "disponível", "quantidade_disponível"],
+      "it": ["scorta", "inventario", "quantità", "disponibile"],
+      "zh": ["库存", "存货", "数量", "可用"]
+    },
+    "description": {
+      "en": ["description", "product_description", "item_description", "short_description", "long_description"],
+      "es": ["descripción", "descripcion_producto", "descripcion_articulo", "descripcion_larga"],
+      "pt": ["descrição", "descrição_produto", "descricao_artigo", "descricao_longa"],
+      "it": ["descrizione", "descrizione_prodotto", "descrizione_articolo", "descrizione_lunga"],
+      "zh": ["描述", "产品描述", "物品描述", "长描述"]
+    },
+    "category": {
+      "en": ["category", "product_category", "item_category", "category_name"],
+      "es": ["categoría", "categoria_producto", "categoria_articulo", "nombre_categoria"],
+      "pt": ["categoria", "categoria_produto", "categoria_artigo", "nome_categoria"],
+      "it": ["categoria", "categoria_prodotto", "categoria_articolo"],
+      "zh": ["类别", "产品类别", "物品类别"]
+    },
+    "image_url": {
+      "en": ["image_url", "image", "product_image", "item_image", "img_url"],
+      "es": ["url_imagen", "imagen", "imagen_producto", "img_url"],
+      "pt": ["url_imagem", "imagem", "imagem_produto", "img_url"],
+      "it": ["url_immagine", "immagine", "immagine_prodotto", "img_url"],
+      "zh": ["图片链接", "图片", "产品图片", "图片地址"]
+    },
+    "shipping": {
+      "en": ["shipping", "shipping_cost", "delivery_fee", "freight", "shipping_price"],
+      "es": ["envío", "costo_envio", "cargo_envio", "gastos_envio", "precio_envio"],
+      "pt": ["envio", "custo_envio", "taxa_envio", "frete", "preço_envio"],
+      "it": ["spedizione", "costo_spedizione", "tariffa_spedizione", "freight"],
+      "zh": ["运输", "运费", "送货费", "货运费用"]
+    },
+    "tax": {
+      "en": ["tax", "vat", "sales_tax", "tax_rate", "tax_value"],
+      "es": ["impuesto", "iva", "impuesto_venta", "tasa_impuesto", "valor_impuesto"],
+      "pt": ["imposto", "icms", "taxa_iva", "valor_imposto"],
+      "it": ["imposta", "iva", "tassa_su_vendita", "valore_imposta"],
+      "zh": ["税", "增值税", "销售税", "税率", "税值"]
+    }
+  },
+  "providers": {
+    "MercadoLibre": {
+      "sku": ["sku", "product_id", "item_id"],
+      "name": ["name", "product_name", "title"],
+      "price": ["price", "cost", "price_cost", "amount"],
+      "brand": ["brand", "manufacturer", "company"],
+      "stock": ["stock", "available_stock", "quantity", "inventory"],
+      "description": ["description", "long_description", "item_description"],
+      "category": ["category", "main_category", "category_name"],
+      "image_url": ["image_url", "img_url", "image", "product_image_url"],
+      "shipping": ["shipping", "shipping_cost", "delivery_fee"]
+    },
+    "TiendaNube": {
+      "sku": ["sku", "product_code", "item_code"],
+      "name": ["name", "product_name", "title"],
+      "price": ["price", "unit_price", "cost"],
+      "brand": ["brand", "manufacturer"],
+      "stock": ["stock", "quantity_available", "inventory"],
+      "description": ["description", "short_description", "product_details"],
+      "category": ["category", "category_name"],
+      "image_url": ["image_url", "image_link"],
+      "shipping": ["shipping", "delivery_time", "shipping_fee"]
+    },
+    "WooCommerce": {
+      "sku": ["sku", "product_sku"],
+      "name": ["name", "product_name", "item_name"],
+      "price": ["price", "regular_price", "sale_price"],
+      "brand": ["brand", "manufacturer"],
+      "stock": ["stock", "quantity", "inventory_quantity"],
+      "description": ["description", "long_description"],
+      "category": ["category", "product_category"],
+      "image_url": ["image", "product_image"],
+      "shipping": ["shipping", "shipping_cost"]
+    },
+    "Shopify": {
+      "sku": ["sku", "product_code"],
+      "name": ["title", "name"],
+      "price": ["price", "regular_price"],
+      "brand": ["brand", "product_vendor"],
+      "stock": ["stock", "inventory_quantity", "quantity_available"],
+      "description": ["description", "product_description"],
+      "category": ["product_type", "category"],
+      "image_url": ["image_url", "product_image", "product_picture"],
+      "shipping": ["shipping_cost", "shipping_fee"]
+    },
+    "PrestaShop": {
+      "sku": ["id_product", "product_sku"],
+      "name": ["name", "product_name", "title"],
+      "price": ["price", "regular_price", "retail_price"],
+      "brand": ["manufacturer", "product_brand", "brand_name"],
+      "stock": ["quantity", "product_quantity", "inventory"],
+      "description": ["description", "short_description", "long_description"],
+      "category": ["category", "product_category", "category_name"],
+      "image_url": ["image_url", "product_image_url", "product_image"],
+      "shipping": ["shipping_cost", "delivery_cost"]
+    }
+  }
+}
