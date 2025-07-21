@@ -11,6 +11,8 @@
 </head>
 <body>
     <h1>Productos importados</h1>
+    <img src="/static/logo.png" alt="NormaPy Logo" style="height:50px;">
+    <p>NormaPy es una herramienta para la normalización de productos antes de importarlos a un sistema de inventario.</p>
     <form action="{% url 'exportar_productos' %}" method="get" style="margin-bottom: 20px;">
         <label for="formato">Exportar como:</label>
         <select name="formato" id="formato">
@@ -21,6 +23,14 @@
     </form>
     <form action="{% url 'exportar_json' %}" method="get" style="margin-bottom: 20px; display:inline-block;">
         <button type="submit">Exportar a JSON</button>
+    </form>
+    <form action="{% url 'descargar_normalizado' %}" method="get" style="margin-bottom: 20px; display:inline-block;">
+        <label for="formato2">Descargar archivo normalizado:</label>
+        <select name="formato" id="formato2">
+            <option value="csv">CSV</option>
+            <option value="json">JSON</option>
+        </select>
+        <button type="submit">📥 Descargar archivo normalizado</button>
     </form>
     <table>
         <thead>
