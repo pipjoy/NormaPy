@@ -122,32 +122,25 @@ def importar_archivo(request):
                 df = pd.read_excel(archivo)
             else:
                 raise ValueError("El archivo debe ser CSV o Excel.")
-            print("[DEPURACIÓN] Primeras filas del archivo:")
-            print(df.head())
-            print("[DEPURACIÓN] Columnas originales:", df.columns.tolist())
+            print("Primeras filas del archivo:", df.head())
 
-            from .mapeo.validacion import limpiar_columnas, validar_datos
+            from .mapeo.validacion import limpiar_columnas
             df = limpiar_columnas(df)
-            print("[DEPURACIÓN] Columnas después de limpiar:", df.columns.tolist())
+            print("Columnas después de limpiar:", df.columns.tolist())
 
             from .mapeo.normalizador import mapear_columnas
             mapeo, columnas_no_mapeadas = mapear_columnas(df, sinonimos['global'], sinonimos.get('providers', {}))
-            print("[DEPURACIÓN] Mapeo generado:", mapeo)
+            print("🔍 Mapeo generado:", mapeo)
             if columnas_no_mapeadas:
                 print(f"⚠ Columnas no mapeadas: {', '.join(columnas_no_mapeadas)}")
 
             df = renombrar_columnas(df, mapeo)
-            print("[DEPURACIÓN] Columnas después de renombrar:", df.columns.tolist())
-            print("[DEPURACIÓN] Primeras filas tras renombrar:")
-            print(df.head())
+            print("Columnas después de renombrar:", df.columns.tolist())
 
-            # Normalizar y limpiar datos
+            # Validar y limpiar datos
             df['precio'] = pd.to_numeric(df['precio'], errors='coerce')
-            df['stock'] = pd.to_numeric(df['stock'], errors='coerce').fillna(0).astype(int)
-            df['marca'] = df['marca'].fillna('Sin Marca')
-
-            # Vista previa
-            preview_data = df.head(3).to_dict(orient='records')
+            df = df[df['precio'] > 0]
+            df.fillna('Sin dato', inplace=True)
 
             # Guardar productos en la base de datos
             from .models import Producto
@@ -162,6 +155,8 @@ def importar_archivo(request):
                     }
                 )
 
+            # Vista previa
+            preview_data = df.head(3).to_dict(orient='records')
             mensaje = "¡Productos importados exitosamente!"
         except Exception as e:
             form.add_error('archivo', f'Error procesando el archivo: {e}')
