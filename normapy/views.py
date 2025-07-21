@@ -9,6 +9,7 @@ import json
 import os
 from django.db.models import Count
 from django.http import HttpResponse
+from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
 import json as pyjson
 from django.utils import timezone
@@ -46,6 +47,18 @@ def limpiar_datos(df):
     if 'stock' in df.columns:
         df['stock'] = pd.to_numeric(df['stock'], errors='coerce')
     return df
+
+def mostrar_estadisticas(df):
+    total_productos = len(df)
+    precio_promedio = df['precio'].mean() if 'precio' in df.columns else 0
+    stock_total = df['stock'].sum() if 'stock' in df.columns else 0
+    skus_generados = df[df['sku'].astype(str).str.startswith('AUTO')].shape[0] if 'sku' in df.columns else 0
+    return {
+        "total_productos": total_productos,
+        "precio_promedio": precio_promedio,
+        "stock_total": stock_total,
+        "skus_generados": skus_generados,
+    }
 
 def verificar_columnas_requeridas(df):
     """Verifica que las columnas esenciales estén en el archivo."""
@@ -115,11 +128,13 @@ def importar_archivo(request):
     if request.method == 'POST' and form.is_valid():
         archivo = request.FILES['archivo']
         try:
-            # Leer archivo CSV o Excel
+            # Leer archivo CSV o Excel (soporte para varias hojas)
             if archivo.name.endswith('.csv'):
                 df = pd.read_csv(archivo)
             elif archivo.name.endswith('.xlsx'):
-                df = pd.read_excel(archivo)
+                xl = pd.ExcelFile(archivo)
+                hoja = xl.sheet_names[0]
+                df = xl.parse(hoja)
             else:
                 raise ValueError("El archivo debe ser CSV o Excel.")
             print("[DEPURACIÓN] Primeras filas del archivo:")
@@ -146,23 +161,31 @@ def importar_archivo(request):
             df['stock'] = pd.to_numeric(df['stock'], errors='coerce').fillna(0).astype(int)
             df['marca'] = df['marca'].fillna('Sin Marca')
 
+            if 'limpiar' in request.POST:
+                df = limpieza_basica(df)
+
             # Vista previa
             preview_data = df.head(3).to_dict(orient='records')
 
-            # Guardar productos en la base de datos
-            from .models import Producto
-            for fila in df.to_dict(orient='records'):
-                Producto.objects.update_or_create(
-                    sku=fila.get("sku"),
-                    defaults={
-                        "nombre": fila.get("nombre"),
-                        "precio": fila.get("precio"),
-                        "stock": fila.get("stock"),
-                        "marca": fila.get("marca"),
-                    }
+            if 'confirmar' in request.POST:
+                from .models import Producto, HistorialImportacion
+                for fila in df.to_dict(orient='records'):
+                    Producto.objects.update_or_create(
+                        sku=fila.get("sku"),
+                        defaults={
+                            "nombre": fila.get("nombre"),
+                            "precio": fila.get("precio"),
+                            "stock": fila.get("stock"),
+                            "marca": fila.get("marca"),
+                        }
+                    )
+                HistorialImportacion.objects.create(
+                    nombre_archivo=archivo.name,
+                    productos_importados=len(df),
+                    errores=", ".join(columnas_no_mapeadas) if columnas_no_mapeadas else ""
                 )
-
-            mensaje = "¡Productos importados exitosamente!"
+                acciones['estadisticas'] = mostrar_estadisticas(df)
+                mensaje = "¡Productos importados exitosamente!"
         except Exception as e:
             form.add_error('archivo', f'Error procesando el archivo: {e}')
             print("[ERROR]", e)
@@ -171,7 +194,8 @@ def importar_archivo(request):
         'mapeo': mapeo,
         'acciones': acciones,
         'preview': preview_data,
-        'mensaje': mensaje
+        'mensaje': mensaje,
+        'estadisticas': acciones.get('estadisticas')
     })
 
 def listar_productos(request):
@@ -212,6 +236,21 @@ def exportar_json(request):
         pyjson.dump(productos, f, ensure_ascii=False, indent=2)
     # Descargar el archivo
     return FileResponse(open(filepath, 'rb'), as_attachment=True, filename=filename)
+
+def descargar_normalizado(request):
+    formato = request.GET.get('formato', 'csv')
+    productos = Producto.objects.all().values('sku', 'nombre', 'precio', 'marca', 'stock')
+    df = pd.DataFrame(list(productos))
+
+    if formato == 'json':
+        response = HttpResponse(content_type='application/json')
+        response['Content-Disposition'] = 'attachment; filename="productos_normalizados.json"'
+        response.write(df.to_json(orient='records', force_ascii=False))
+    else:
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="productos_normalizados.csv"'
+        df.to_csv(path_or_buffer=response, index=False)
+    return response
 
 def dashboard(request):
     total_productos = Producto.objects.count()

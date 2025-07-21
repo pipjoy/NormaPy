@@ -26,3 +26,13 @@ class Producto(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.sku})"
+
+
+class HistorialImportacion(models.Model):
+    nombre_archivo = models.CharField(max_length=255)
+    fecha_importacion = models.DateTimeField(auto_now_add=True)
+    productos_importados = models.IntegerField()
+    errores = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.nombre_archivo} ({self.fecha_importacion.date()})"

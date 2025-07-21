@@ -16,6 +16,8 @@
 </head>
 <body>
     <h1>Vista previa de importación – NormaPy</h1>
+    <img src="/static/logo.png" alt="NormaPy Logo" style="height:50px;">
+    <p>NormaPy es una herramienta para la normalización de productos antes de importarlos a un sistema de inventario.</p>
 
     <p>
         <strong>Subir archivo CSV o Excel</strong>
@@ -23,6 +25,7 @@
             {% csrf_token %}
             {{ form.as_p }}
             <button type="submit">Subir archivo</button>
+            <button type="submit" name="limpiar" value="1">Limpiar datos</button>
         </form>
     </p>
 
@@ -80,6 +83,15 @@
             {{ form.as_p }}
             <button type="submit" name="confirmar" value="1">Confirmar importación</button>
         </form>
+        {% if estadisticas %}
+        <h2>Resumen de datos importados</h2>
+        <ul>
+            <li>Total de productos: {{ estadisticas.total_productos }}</li>
+            <li>Precio promedio: {{ estadisticas.precio_promedio }}</li>
+            <li>Stock total: {{ estadisticas.stock_total }}</li>
+            <li>SKUs generados: {{ estadisticas.skus_generados }}</li>
+        </ul>
+        {% endif %}
     {% else %}
         <p>No hay datos para mostrar. Por favor sube un archivo.</p>
     {% endif %}
