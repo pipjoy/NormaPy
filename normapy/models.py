@@ -21,7 +21,7 @@ class Producto(models.Model):
     importacion = models.ForeignKey(Importacion, on_delete=models.SET_NULL, null=True, blank=True)
     sku = models.CharField(max_length=50, unique=True)
     nombre = models.CharField(max_length=255)
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    precio = models.FloatField()
     stock = models.IntegerField(default=0)
     marca = models.CharField(max_length=100, blank=True, null=True)
 

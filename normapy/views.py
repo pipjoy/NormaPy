@@ -208,7 +208,7 @@ def importar_archivo(request):
         if df is not None:
             from .mapeo.validacion import limpiar_columnas
             df = limpiar_columnas(df)
-            mapeo, _ = mapear_columnas(df, sinonimos['global'], sinonimos.get('providers', {}))
+            mapeo = mapear_columnas(df, sinonimos['global'], sinonimos.get('providers', {}))
             df = renombrar_columnas(df, mapeo)
             required_columns = ['sku', 'nombre', 'precio', 'stock']
             missing_columns = [col for col in required_columns if col not in df.columns]
