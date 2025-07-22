@@ -6,6 +6,10 @@ __pycache__/
 *.sqlite3
 db.sqlite3
 
+# Ignorar archivos temporales y de pruebas
+*.xlsx
+db.sqlite3
+
 # Environments
 .env
 .venv
@@ -22,3 +26,9 @@ ENV/
 
 # Backup files
 *~
+
+# Media files
+media/
+
+# Imported CSVs
+importaciones/*.csv

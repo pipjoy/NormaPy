@@ -11,6 +11,7 @@ from django.db.models import Count
 from django.http import HttpResponse
 from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
+from .mapeo.normalizador import mapear_columnas
 from .mapeo.validacion import limpiar_columnas
 from .utils.logger import logger
 import json as pyjson
@@ -19,6 +20,9 @@ from django.http import FileResponse
 from unidecode import unidecode
 from datetime import datetime
 from django.db.models import Avg, Sum
+from rest_framework.viewsets import ModelViewSet
+from .models import Producto
+from .serializers import ProductoSerializer
 
 # Cargar sinonimos.json desde disco
 SINONIMOS_PATH = os.path.join(os.path.dirname(__file__), 'mapeo', 'sinonimos.json')
@@ -195,17 +199,55 @@ def importar_archivo(request):
         archivo = request.FILES.get('archivo')
         hoja_seleccionada = request.POST.get('hoja')
         if archivo:
-            if archivo.name.endswith('.xlsx'):
-                excel_file = pd.ExcelFile(archivo)
-                hojas = excel_file.sheet_names
-                if hoja_seleccionada:
-                    df = excel_file.parse(hoja_seleccionada)
+            try:
+                if archivo.name.endswith('.xlsx'):
+                    excel_file = pd.ExcelFile(archivo)
+                    hojas = excel_file.sheet_names
+                    if hoja_seleccionada:
+                        df = excel_file.parse(hoja_seleccionada)
+                    else:
+                        df = excel_file.parse(hojas[0])
+                elif archivo.name.endswith('.xls'):
+                    excel_file = pd.ExcelFile(archivo, engine="xlrd")
+                    hojas = excel_file.sheet_names
+                    if hoja_seleccionada:
+                        df = excel_file.parse(hoja_seleccionada)
+                    else:
+                        df = excel_file.parse(hojas[0])
+                elif archivo.name.endswith('.csv'):
+                    df = pd.read_csv(archivo)
                 else:
-                    df = excel_file.parse(hojas[0])
-            elif archivo.name.endswith('.csv'):
-                df = pd.read_csv(archivo)
-            else:
-                mensaje = "El archivo debe ser CSV o Excel."
+                    mensaje = "El archivo debe ser CSV o Excel."
+            except Exception as e:
+                mensaje = f"Ocurrió un error al procesar el archivo: {str(e)}"
+                return render(
+                    request,
+                    'normapy/preview.html',
+                    {
+                        'form': form,
+                        'hojas': hojas,
+                        'mapeo': mapeo,
+                        'acciones': acciones,
+                        'preview': preview_data,
+                        'mensaje': mensaje,
+                        'estadisticas': estadisticas,
+                    },
+                )
+            if df is not None and df.empty:
+                mensaje = f'La hoja "{hoja_seleccionada or hojas[0]}" está vacía. Por favor, selecciona una hoja con datos válidos.'
+                return render(
+                    request,
+                    'normapy/preview.html',
+                    {
+                        'form': form,
+                        'hojas': hojas,
+                        'mapeo': mapeo,
+                        'acciones': acciones,
+                        'preview': preview_data,
+                        'mensaje': mensaje,
+                        'estadisticas': estadisticas,
+                    },
+                )
         elif hoja_seleccionada and 'archivo' not in request.FILES:
             mensaje = "Por favor, sube el archivo nuevamente para seleccionar otra hoja."
 
@@ -324,3 +366,15 @@ def productos_por_importacion(request, importacion_id):
 
 def bienvenida(request):
     return render(request, 'normapy/bienvenida.html')
+
+class ProductoViewSet(ModelViewSet):
+    queryset = Producto.objects.all()
+    serializer_class = ProductoSerializer
+
+def importar(request):
+    from django.http import HttpResponse
+    return HttpResponse("Página de Importar (servida por React)")
+
+def dashboard(request):
+    from django.http import HttpResponse
+    return HttpResponse("Página de Dashboard (servida por React)")
