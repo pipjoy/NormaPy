@@ -19,7 +19,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from normapy.views import (
     ProductoViewSet,
-    importar_react,
+    importar_archivo,
+    dashboard,
     bienvenida,
 )
 
@@ -29,7 +30,8 @@ router.register(r'productos', ProductoViewSet, basename='producto')
 urlpatterns = [
     path('api/', include(router.urls)),
     path('api-auth/', include('rest_framework.urls')),
-    path('importar/', importar_react),
+    path('importar/', importar_archivo),
+    path('dashboard/', dashboard, name='dashboard'),
     path('admin/', admin.site.urls),
     path('', include('normapy.urls')),
     path('', bienvenida, name='bienvenida'),
