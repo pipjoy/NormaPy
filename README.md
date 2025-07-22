@@ -71,7 +71,7 @@ El sistema detecta automáticamente los nombres de columna gracias al archivo `s
    cd NormaPy
    ```
 
-2. Instala las dependencias:
+2. Instala las dependencias definidas en `requirements.txt`:
    ```
    pip install -r requirements.txt
    ```
@@ -87,6 +87,9 @@ El sistema detecta automáticamente los nombres de columna gracias al archivo `s
    ```
 
 5. Accede a la aplicación en tu navegador en `http://127.0.0.1:8000/`
+
+6. En entornos de producción define la variable de entorno `DJANGO_SECRET_KEY`
+   para establecer la clave secreta de Django.
 
 ---
 

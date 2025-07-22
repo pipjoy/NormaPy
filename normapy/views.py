@@ -2,7 +2,7 @@
 Vista para subir archivos y ejecutar la normalización de datos.
 """
 import pandas as pd
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from .forms import UploadForm
 from .models import Producto, Importacion
 import json
@@ -13,7 +13,6 @@ from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
 import json as pyjson
 from django.utils import timezone
-import os
 from django.http import FileResponse
 from unidecode import unidecode
 from datetime import datetime
@@ -46,11 +45,10 @@ def renombrar_columnas(df, mapeo):
 
 def limpiar_datos(df):
     """Convierte los valores de las columnas a los tipos correctos (float o int)."""
-    import unidecode
     if 'nombre' in df.columns:
-        df['nombre'] = df['nombre'].astype(str).str.lower().apply(lambda x: unidecode.unidecode(x.strip()))
+        df['nombre'] = df['nombre'].astype(str).str.lower().apply(lambda x: unidecode(x.strip()))
     if 'marca' in df.columns:
-        df['marca'] = df['marca'].astype(str).str.lower().apply(lambda x: unidecode.unidecode(x.strip()))
+        df['marca'] = df['marca'].astype(str).str.lower().apply(lambda x: unidecode(x.strip()))
     if 'precio' in df.columns:
         df['precio'] = pd.to_numeric(df['precio'], errors='coerce').fillna(0)
     if 'stock' in df.columns:
@@ -91,22 +89,6 @@ def validar_mapeo(mapeo, df_columns):
     print("🗺️ Mapeo generado:", mapeo)
     return True
 
-def mapear_columnas(df, sinonimos_global, sinonimos_proveedor=None):
-    """Mapea las columnas del archivo CSV/Excel a las columnas internas del sistema."""
-    mapeo = {}
-    for col in df.columns:
-        # Intentar mapear las columnas usando los sinónimos globales
-        for clave, sin in sinonimos_global.items():
-            if col in sin:
-                mapeo[clave] = col
-                break
-        # Si no se encuentra, intentar con sinónimos del proveedor (si existen)
-        if clave not in mapeo and sinonimos_proveedor:
-            for clave, sin in sinonimos_proveedor.items():
-                if col in sin:
-                    mapeo[clave] = col
-                    break
-    return mapeo
 
 def validar_columnas_vacias(df):
     """Verifica que no haya valores vacíos en las columnas requeridas."""
@@ -141,7 +123,71 @@ def importar_archivo(request):
     estadisticas = None
     mensaje = None
     form = UploadForm(request.POST, request.FILES)
-    if request.method == 'POST':
+
+    if request.method == 'POST' and request.POST.get('confirmar') == '1':
+        # Confirmación de la importación: leer datos almacenados en sesión
+        df_json = request.session.get('import_df')
+        if df_json:
+            df = pd.read_json(df_json)
+            from django.core.files.base import ContentFile
+            csv_content = df.to_csv(index=False)
+            nombre_archivo = request.session.get('archivo_nombre', 'importacion.csv')
+            archivo = ContentFile(csv_content.encode('utf-8'), name=nombre_archivo)
+            importacion = Importacion.objects.create(
+                archivo=archivo,
+                nombre_original=nombre_archivo,
+                cantidad_productos=0,
+                columnas_detectadas=", ".join(df.columns.tolist()),
+                se_generaron_skus=any(df['sku'].astype(str).str.startswith('AUTO')),
+            )
+
+            registros = df.to_dict(orient='records')
+            skus = [r.get("sku") for r in registros]
+            existentes = Producto.objects.filter(sku__in=skus)
+            existentes_map = {p.sku: p for p in existentes}
+            productos_nuevos = []
+            productos_actualizar = []
+
+            for fila in registros:
+                sku = fila.get("sku")
+                if sku in existentes_map:
+                    prod = existentes_map[sku]
+                    prod.nombre = fila.get("nombre")
+                    prod.precio = fila.get("precio")
+                    prod.stock = fila.get("stock")
+                    prod.marca = fila.get("marca")
+                    prod.importacion = importacion
+                    productos_actualizar.append(prod)
+                else:
+                    productos_nuevos.append(
+                        Producto(
+                            importacion=importacion,
+                            sku=sku,
+                            nombre=fila.get("nombre"),
+                            precio=fila.get("precio"),
+                            stock=fila.get("stock"),
+                            marca=fila.get("marca"),
+                        )
+                    )
+
+            if productos_nuevos:
+                Producto.objects.bulk_create(productos_nuevos)
+            if productos_actualizar:
+                Producto.objects.bulk_update(
+                    productos_actualizar,
+                    ["nombre", "precio", "stock", "marca", "importacion"],
+                )
+
+            procesados = len(productos_nuevos) + len(productos_actualizar)
+            importacion.cantidad_productos = procesados
+            importacion.save()
+            request.session.pop('import_df', None)
+            request.session.pop('archivo_nombre', None)
+            return redirect('historial_importaciones')
+        else:
+            mensaje = "No hay datos para importar."
+
+    elif request.method == 'POST':
         archivo = request.FILES.get('archivo')
         hoja_seleccionada = request.POST.get('hoja')
         if archivo:
@@ -158,11 +204,11 @@ def importar_archivo(request):
                 mensaje = "El archivo debe ser CSV o Excel."
         elif hoja_seleccionada and 'archivo' not in request.FILES:
             mensaje = "Por favor, sube el archivo nuevamente para seleccionar otra hoja."
+
         if df is not None:
             from .mapeo.validacion import limpiar_columnas
             df = limpiar_columnas(df)
-            from .mapeo.normalizador import mapear_columnas
-            mapeo, campos_no_mapeados = mapear_columnas(df, sinonimos['global'], sinonimos.get('providers', {}))
+            mapeo = mapear_columnas(df, sinonimos['global'], sinonimos.get('providers', {}))
             df = renombrar_columnas(df, mapeo)
             required_columns = ['sku', 'nombre', 'precio', 'stock']
             missing_columns = [col for col in required_columns if col not in df.columns]
@@ -174,37 +220,26 @@ def importar_archivo(request):
                 df['nombre'] = df['nombre'].fillna('Sin Nombre')
                 df['sku'] = df['sku'].fillna('SIN-SKU')
                 df_limpio = df.copy()
-                # Guardar productos y log
-                for fila in df_limpio.to_dict(orient='records'):
-                    producto, creado = Producto.objects.update_or_create(
-                        sku=fila.get("sku"),
-                        defaults={
-                            'nombre': fila.get("nombre"),
-                            'precio': fila.get("precio"),
-                            'stock': fila.get("stock"),
-                            'marca': fila.get("marca")
-                        }
-                    )
-                    print(f"Producto {'creado' if creado else 'actualizado'}: {producto.sku}")
-                # Guardar registro de importación
-                Importacion.objects.create(
-                    archivo=archivo,
-                    nombre_original=archivo.name,
-                    cantidad_productos=len(df_limpio),
-                    columnas_detectadas=", ".join(df_limpio.columns.tolist()),
-                    se_generaron_skus=any(df_limpio['sku'].astype(str).str.startswith('AUTO'))
-                )
+                # Guardar el DataFrame en la sesión para la confirmación posterior
+                request.session['import_df'] = df_limpio.to_json(orient='records')
+                request.session['archivo_nombre'] = archivo.name
                 preview_data = df_limpio.head(3).to_dict(orient='records')
                 estadisticas = mostrar_estadisticas(df_limpio, archivo_nombre=archivo.name)
-        return render(request, 'normapy/preview.html', {
-            'form': form,
-            'hojas': hojas,
-            'mapeo': mapeo,
-            'acciones': acciones,
-            'preview': preview_data,
-            'mensaje': mensaje,
-            'estadisticas': estadisticas
-        })
+
+        return render(
+            request,
+            'normapy/preview.html',
+            {
+                'form': form,
+                'hojas': hojas,
+                'mapeo': mapeo,
+                'acciones': acciones,
+                'preview': preview_data,
+                'mensaje': mensaje,
+                'estadisticas': estadisticas,
+            },
+        )
+
     return render(request, 'normapy/preview.html', {'form': form, 'hojas': hojas})
 
 def listar_productos(request):
@@ -248,7 +283,6 @@ def exportar_json(request):
 
 def descargar_normalizado(request):
     formato = request.GET.get('formato', 'csv')
-    from .models import Producto
     productos = Producto.objects.all().values('sku', 'nombre', 'precio', 'marca', 'stock')
     df = pd.DataFrame(list(productos))
 
@@ -278,12 +312,10 @@ def dashboard(request):
     })
 
 def historial_importaciones(request):
-    from .models import Importacion
     historial = Importacion.objects.all().order_by('-fecha_subida')
     return render(request, 'normapy/historial.html', {'historial': historial})
 
 def productos_por_importacion(request, importacion_id):
-    from .models import Producto
     productos = Producto.objects.filter(importacion_id=importacion_id)
     return render(request, 'normapy/productos_por_importacion.html', {'productos': productos, 'importacion_id': importacion_id})
 
