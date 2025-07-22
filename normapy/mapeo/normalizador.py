@@ -3,14 +3,11 @@ Módulo para la lógica de mapeo automático de columnas.
 """
 
 import pandas as pd
-import json
-import os
-import re
 from unidecode import unidecode
-from rapidfuzz import fuzz
 import logging
 import sys
 import hashlib
+from .heuristicas import HEURISTICAS
 
 # Configuración básica de logger (usando utils/logger.py si está implementado)
 logger = logging.getLogger("normapy.mapeo.normalizador")
@@ -48,9 +45,17 @@ def aplanar_sinonimos(sin):
 
 def mapear_columnas(df, sinonimos_global, sinonimos_proveedor=None):
     """Mapea las columnas del archivo CSV/Excel a las columnas internas del sistema utilizando sinónimos."""
-    mapeo = {}
+    mapeo: dict[str, str] = {}
     columnas_archivo = [normalizar_texto(col) for col in df.columns]
-    for campo, lista_sinonimos in sinonimos_global.items():
+
+    sinonimos = {k: list(v) for k, v in sinonimos_global.items()}
+    if sinonimos_proveedor:
+        for campo, lista in sinonimos_proveedor.items():
+            sinonimos.setdefault(campo, [])
+            sinonimos[campo].extend(aplanar_sinonimos(lista))
+
+    # Primero intenta por coincidencia directa con sinónimos
+    for campo, lista_sinonimos in sinonimos.items():
         encontrado = False
         for sin in lista_sinonimos:
             sin_norm = normalizar_texto(sin)
@@ -61,6 +66,15 @@ def mapear_columnas(df, sinonimos_global, sinonimos_proveedor=None):
                     break
             if encontrado:
                 break
+
+    # Si faltan columnas, intenta heurísticas
+    for campo, funcion in HEURISTICAS.items():
+        if campo not in mapeo:
+            df_restante = df.drop(columns=list(mapeo.values()), errors='ignore')
+            col = funcion(df_restante)
+            if col and col not in mapeo.values():
+                mapeo[campo] = col
+
     return mapeo
 
 
