@@ -11,7 +11,6 @@ from django.db.models import Count
 from django.http import HttpResponse
 from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
-from .mapeo.normalizador import mapear_columnas
 from .mapeo.validacion import limpiar_columnas
 from .utils.logger import logger
 import json as pyjson
@@ -21,7 +20,6 @@ from unidecode import unidecode
 from datetime import datetime
 from django.db.models import Avg, Sum
 from rest_framework.viewsets import ModelViewSet
-from .models import Producto
 from .serializers import ProductoSerializer
 
 # Cargar sinonimos.json desde disco
@@ -370,13 +368,12 @@ def bienvenida(request):
 class ProductoViewSet(ModelViewSet):
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer
-
 def importar_react(request):
     """Placeholder view served by the React frontend."""
     from django.http import HttpResponse
     return HttpResponse("Página de Importar (servida por React)")
-
 def dashboard_react(request):
     """Placeholder dashboard view served by the React frontend."""
     from django.http import HttpResponse
     return HttpResponse("Página de Dashboard (servida por React)")
+
