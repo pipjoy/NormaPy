@@ -18,8 +18,5 @@ urlpatterns = [
 
 # Servir archivos media y estáticos en desarrollo
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-4max6j-codex/add-trailing-newline-to-urls.py
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) 
-main
