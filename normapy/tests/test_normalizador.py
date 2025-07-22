@@ -31,6 +31,14 @@ class TestImportacion(TestCase):
         assert 'sku' in mapeo and mapeo['sku'] == 'sku'
         assert 'stock' in mapeo and mapeo['stock'] == 'stock'
 
+    def test_mapeo_con_heuristicas(self):
+        df_alt = pd.DataFrame([
+            {"ref": "X1", "titulo": "Prod1", "coste": 9.5, "empresa": "E1", "qty": 3},
+            {"ref": "X2", "titulo": "Prod2", "coste": 19.0, "empresa": "E1", "qty": 7},
+        ])
+        mapeo = mapear_columnas(df_alt, self.sinonimos['global'])
+        assert set(['nombre', 'precio', 'sku', 'marca', 'stock']).issubset(mapeo.keys())
+
     def test_validar_datos_y_guardado(self):
         mapeo = mapear_columnas(self.df, self.sinonimos['global'], self.sinonimos.get('providers', {}))
         df_limpio, acciones = validar_datos(self.df, mapeo)
