@@ -372,8 +372,9 @@ def importar_react(request):
     """Placeholder view served by the React frontend."""
     from django.http import HttpResponse
     return HttpResponse("Página de Importar (servida por React)")
+
+
 def dashboard_react(request):
     """Placeholder dashboard view served by the React frontend."""
     from django.http import HttpResponse
     return HttpResponse("Página de Dashboard (servida por React)")
-
