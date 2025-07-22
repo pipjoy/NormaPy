@@ -3,9 +3,6 @@ Módulo para la lógica de mapeo automático de columnas.
 """
 
 import pandas as pd
-import json
-import os
-import re
 from unidecode import unidecode
 from rapidfuzz import fuzz
 import logging
