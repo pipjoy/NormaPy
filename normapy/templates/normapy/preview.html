@@ -38,7 +38,9 @@
         </form>
     </div>
     {% if mensaje %}
-        <div class="error-message">{{ mensaje }}</div>
+        <div class="error-message" style="color: #fff; background: #d9534f; padding: 12px; border-radius: 6px; margin: 20px 0; font-weight: bold; text-align: center; font-size: 1.1em;">
+            {{ mensaje }}
+        </div>
     {% endif %}
     <div class="mapping-section">
         <h2>Resumen de mapeo de columnas (editable)</h2>

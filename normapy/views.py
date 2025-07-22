@@ -286,3 +286,6 @@ def productos_por_importacion(request, importacion_id):
     from .models import Producto
     productos = Producto.objects.filter(importacion_id=importacion_id)
     return render(request, 'normapy/productos_por_importacion.html', {'productos': productos, 'importacion_id': importacion_id})
+
+def bienvenida(request):
+    return render(request, 'normapy/bienvenida.html')

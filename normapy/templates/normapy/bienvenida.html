@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Bienvenido a NormaPy</title>
+    <link rel="stylesheet" href="{% static 'branding.css' %}">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 60px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 40px 30px; text-align: center; }
+        h1 { color: #007bff; margin-bottom: 10px; }
+        p { color: #333; font-size: 1.1em; }
+        .btn { display: inline-block; margin-top: 30px; padding: 12px 28px; background: #007bff; color: #fff; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 1.1em; transition: background 0.2s; }
+        .btn:hover { background: #0056b3; }
+        img { height: 60px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="{% static 'normapy/logo.png' %}" alt="NormaPy Logo">
+        <h1>¡Bienvenido a NormaPy!</h1>
+        <p>NormaPy es tu herramienta para importar, normalizar y gestionar catálogos de productos de múltiples plataformas de e-commerce de forma sencilla y eficiente.</p>
+        <a href="/importar/" class="btn">Comenzar a importar productos</a>
+    </div>
+</body>
+</html> 
