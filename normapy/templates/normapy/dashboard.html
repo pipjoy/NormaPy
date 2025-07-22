@@ -20,38 +20,13 @@
         <a href="{% url 'historial_importaciones' %}" class="import-button" style="background-color:#ffc107; color:#333;">Historial</a>
         <a href="{% url 'dashboard' %}" class="import-button" style="background-color:#6f42c1;">Dashboard</a>
     </nav>
-<h1>Dashboard de Importaciones</h1>
-<ul>
-    <li><strong>Total de productos importados:</strong> {{ total_productos }}</li>
-    <li><strong>Total de importaciones:</strong> {{ total_importaciones }}</li>
-    <li><strong>Usuario con más importaciones:</strong> {{ usuario_top.usuario__username }} ({{ usuario_top.total }})</li>
-    <li><strong>Último archivo subido:</strong> {{ ultimo_archivo.archivo_nombre }} ({{ ultimo_archivo.fecha|date:"Y-m-d H:i" }})</li>
-</ul>
-
-<h2>Productos por marca</h2>
-<table border="1" cellpadding="6">
-    <tr>
-        <th>Marca</th>
-        <th>Total</th>
-    </tr>
-    {% for marca in productos_por_marca %}
-    <tr>
-        <td>{{ marca.marca }}</td>
-        <td>{{ marca.total }}</td>
-    </tr>
-    {% endfor %}
-</table>
-
-<h2>Importaciones por mes</h2>
-<table border="1" cellpadding="6">
-    <tr>
-        <th>Mes</th>
-        <th>Total importaciones</th>
-    </tr>
-    {% for mes in importaciones_por_mes %}
-    <tr>
-        <td>{{ mes.mes }}</td>
-        <td>{{ mes.total }}</td>
-    </tr>
-    {% endfor %}
-</table> 
+    <h1>Dashboard de Importaciones</h1>
+    <ul>
+        <li><strong>Total de productos:</strong> {{ productos }}</li>
+        <li><strong>Total de importaciones:</strong> {{ total_importaciones }}</li>
+        <li><strong>Total de stock:</strong> {{ total_stock }}</li>
+        <li><strong>Precio promedio:</strong> {{ precio_promedio }}</li>
+        <li><strong>SKUs generados automáticamente:</strong> {{ skus_generados }}</li>
+    </ul>
+</body>
+</html>
