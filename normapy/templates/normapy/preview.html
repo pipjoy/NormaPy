@@ -100,7 +100,8 @@
     {% if preview %}
         <form method="POST">
             {% csrf_token %}
-            <button type="submit" name="confirmar" value="1">Confirmar importación</button>
+            <input type="hidden" name="confirmar" value="1" />
+            <button type="submit">Confirmar importación</button>
             <button type="submit" name="limpiar" value="1" class="clean-data-button">Limpiar datos</button>
         </form>
     {% endif %}
