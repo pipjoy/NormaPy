@@ -7,9 +7,7 @@ from .forms import UploadForm
 from .models import Producto, Importacion
 import json
 import os
-from django.db.models import Count
 from django.http import HttpResponse
-from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
 from .mapeo.validacion import limpiar_columnas
 from .utils.logger import logger
