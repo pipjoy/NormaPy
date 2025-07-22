@@ -11,6 +11,7 @@ from django.db.models import Count
 from django.http import HttpResponse
 from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
+from .utils.logger import logger
 import json as pyjson
 from django.utils import timezone
 from django.http import FileResponse
@@ -37,10 +38,15 @@ def renombrar_columnas(df, mapeo):
         if original in columnas_actuales:
             columnas_a_renombrar[original] = campo  # renombra a español
         else:
-            print(f"⚠ Columna mapeada '{original}' no encontrada en el archivo.")
-            raise ValueError(f"Columna mapeada '{original}' no encontrada en el archivo.")
+            logger.warning(
+                "\u26a0 Columna mapeada '%s' no encontrada en el archivo.",
+                original,
+            )
+            raise ValueError(
+                f"Columna mapeada '{original}' no encontrada en el archivo."
+            )
     df = df.rename(columns=columnas_a_renombrar)
-    print("Columnas después de renombrar:", df.columns.tolist())
+    logger.info("Columnas despu\u00e9s de renombrar: %s", df.columns.tolist())
     return df
 
 def limpiar_datos(df):
@@ -86,7 +92,7 @@ def validar_mapeo(mapeo, df_columns):
             raise ValueError(f"Falta la columna obligatoria en el mapeo: {columna}")
         if mapeo[columna] not in df_columns:
             raise ValueError(f"Columna mapeada '{columna}' no encontrada en el archivo.")
-    print("🗺️ Mapeo generado:", mapeo)
+    logger.info("\ud83d\uddfe\ufe0f Mapeo generado: %s", mapeo)
     return True
 
 
@@ -105,14 +111,17 @@ def filtrar_columnas_relevantes(df):
     return df
 
 def depurar_datos(df, mapeo=None):
-    print("[DEPURACIÓN] Primeras filas del archivo:")
-    print(df.head())
-    print("[DEPURACIÓN] Columnas leídas:", df.columns.tolist())
+    logger.info("[DEPURACIÓN] Primeras filas del archivo:")
+    logger.info("%s", df.head().to_string())
+    logger.info("[DEPURACIÓN] Columnas leídas: %s", df.columns.tolist())
     if mapeo is not None:
-        print("[DEPURACIÓN] Mapeo generado:", mapeo)
+        logger.info("[DEPURACIÓN] Mapeo generado: %s", mapeo)
         for campo, col in mapeo.items():
             if col not in df.columns:
-                print(f"[DEPURACIÓN][ADVERTENCIA] Columna mapeada '{col}' no encontrada en el DataFrame tras renombrar.")
+                logger.warning(
+                    "[DEPURACIÓN][ADVERTENCIA] Columna mapeada '%s' no encontrada en el DataFrame tras renombrar.",
+                    col,
+                )
 
 def importar_archivo(request):
     hojas = []
