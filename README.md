@@ -71,7 +71,7 @@ El sistema detecta automáticamente los nombres de columna gracias al archivo `s
    cd NormaPy
    ```
 
-2. Instala las dependencias:
+2. Instala las dependencias definidas en `requirements.txt`:
    ```
    pip install -r requirements.txt
    ```
