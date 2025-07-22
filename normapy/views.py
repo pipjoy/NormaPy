@@ -11,10 +11,8 @@ from django.db.models import Count
 from django.http import HttpResponse
 from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
-codex/remove-duplicate-limpiar_columnas-in-views.py
 from .mapeo.validacion import limpiar_columnas
 from .utils.logger import logger
-main
 import json as pyjson
 from django.utils import timezone
 from django.http import FileResponse
