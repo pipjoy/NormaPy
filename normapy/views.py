@@ -7,11 +7,8 @@ from .forms import UploadForm
 from .models import Producto, Importacion
 import json
 import os
-from django.db.models import Count
 from django.http import HttpResponse
-from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
-from .mapeo.normalizador import mapear_columnas
 from .mapeo.validacion import limpiar_columnas
 from .utils.logger import logger
 import json as pyjson
@@ -21,7 +18,6 @@ from unidecode import unidecode
 from datetime import datetime
 from django.db.models import Avg, Sum
 from rest_framework.viewsets import ModelViewSet
-from .models import Producto
 from .serializers import ProductoSerializer
 
 # Cargar sinonimos.json desde disco
