@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Historial de Importaciones</title>
+    <title>Productos por Importación</title>
     <link rel="stylesheet" href="{% static 'branding.css' %}">
     <style>
         table { border-collapse: collapse; width: 100%; margin-top: 20px; }
@@ -15,7 +15,7 @@
     <header>
         <img src="{% static 'normapy/logo.png' %}" alt="Logo NormaPy"> NormaPy
     </header>
-    <h1>Historial de Importaciones</h1>
+    <h1>Productos de la importación {{ importacion_id }}</h1>
     <nav style="text-align:center; margin-bottom:20px;">
         <a href="{% url 'importar_archivo' %}" class="import-button">Importar productos</a>
         <a href="{% url 'listar_productos' %}" class="import-button" style="background-color:#17a2b8;">Ver productos</a>
@@ -25,31 +25,28 @@
     <table>
         <thead>
             <tr>
-                <th>Archivo</th>
-                <th>Fecha</th>
-                <th>Total productos</th>
-                <th>Acciones</th>
+                <th>SKU</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Marca</th>
+                <th>Stock</th>
             </tr>
         </thead>
         <tbody>
-            {% for imp in historial %}
-            <tr>
-codex/create-productos_por_importacion-template
-                <td>{{ imp.archivo_nombre }}</td>
-                <td>{{ imp.fecha|date:"Y-m-d H:i" }}</td>
-                <td>{{ imp.total_productos }}</td>
-                <td>
-                    <a href="{% url 'productos_por_importacion' imp.id %}">Ver productos</a>
-                </td>
-
-                <td>{{ imp.nombre_original }}</td>
-                <td>{{ imp.fecha_subida|date:"Y-m-d H:i" }}</td>
-main
-            </tr>
-            {% empty %}
-            <tr><td colspan="3">No hay importaciones registradas.</td></tr>
-            {% endfor %}
+            {% if productos %}
+                {% for producto in productos %}
+                <tr>
+                    <td>{{ producto.sku }}</td>
+                    <td>{{ producto.nombre }}</td>
+                    <td>{{ producto.precio }}</td>
+                    <td>{{ producto.marca }}</td>
+                    <td>{{ producto.stock }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr><td colspan="5">No hay productos para esta importación.</td></tr>
+            {% endif %}
         </tbody>
     </table>
 </body>
-</html> 
+</html>

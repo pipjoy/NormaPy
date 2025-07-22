@@ -6,6 +6,9 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('', views.importar_archivo, name='importar_archivo'),  # Página principal
     path('historial/', views.historial_importaciones, name='historial_importaciones'),
+    path('historial/<int:importacion_id>/productos/',
+         views.productos_por_importacion,
+         name='productos_por_importacion'),
     path('productos/', views.listar_productos, name='listar_productos'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('exportar_productos/', views.exportar_productos, name='exportar_productos'),
