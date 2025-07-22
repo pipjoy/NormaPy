@@ -2,6 +2,7 @@
   "global": {
     "nombre": [
       "nombre",
+      "name",
       "nombre del producto",
       "producto",
       "descripción",
@@ -12,6 +13,7 @@
     ],
     "precio": [
       "precio",
+      "price",
       "precio en pesos",
       "precio unitario",
       "valor",

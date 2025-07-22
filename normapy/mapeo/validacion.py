@@ -21,10 +21,10 @@ def validar_columnas_tipo(df):
     return df
 
 
-def verificar_columnas_requeridas(df):
+def verificar_columnas_requeridas(mapeo):
     columnas_requeridas = ['nombre', 'precio', 'sku', 'marca', 'stock']
     for columna in columnas_requeridas:
-        if columna not in df.columns:
+        if columna not in mapeo:
             raise ValueError(f"Falta la columna obligatoria: {columna}")
 
 def limpiar_columnas(df):
@@ -34,9 +34,12 @@ def limpiar_columnas(df):
 
 def validar_datos(df, mapeo):
     acciones = {}
-    # Validar que las columnas esenciales estén presentes
-    verificar_columnas_requeridas(df)
-    # Limpiar y normalizar las columnas según los mapeos
+    # Validar que las columnas esenciales estén mapeadas
+    verificar_columnas_requeridas(mapeo)
     df = limpiar_columnas(df)
+    # Renombrar columnas de acuerdo al mapeo
+    renombres = {mapeo[campo]: campo for campo in mapeo}
+    df = df.rename(columns=renombres)
+    df = validar_columnas_tipo(df)
     # Aquí agregaríamos más validaciones y transformaciones si es necesario
     return df, acciones

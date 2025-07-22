@@ -49,7 +49,6 @@ def aplanar_sinonimos(sin):
 def mapear_columnas(df, sinonimos_global, sinonimos_proveedor=None):
     """Mapea las columnas del archivo CSV/Excel a las columnas internas del sistema utilizando sinónimos."""
     mapeo = {}
-    campos_no_mapeados = []
     columnas_archivo = [normalizar_texto(col) for col in df.columns]
     for campo, lista_sinonimos in sinonimos_global.items():
         encontrado = False
@@ -62,9 +61,7 @@ def mapear_columnas(df, sinonimos_global, sinonimos_proveedor=None):
                     break
             if encontrado:
                 break
-        if not encontrado:
-            campos_no_mapeados.append(campo)
-    return mapeo, campos_no_mapeados
+    return mapeo
 
 
 def generar_sku(nombre, marca="", precio=""):
