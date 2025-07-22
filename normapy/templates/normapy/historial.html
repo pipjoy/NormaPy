@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial de Importaciones</title>
+    <link rel="stylesheet" href="{% static 'branding.css' %}">
+    <style>
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="{% static 'normapy/logo.png' %}" alt="Logo NormaPy"> NormaPy
+    </header>
+    <h1>Historial de Importaciones</h1>
+    <nav style="text-align:center; margin-bottom:20px;">
+        <a href="{% url 'importar_archivo' %}" class="import-button">Importar productos</a>
+        <a href="{% url 'listar_productos' %}" class="import-button" style="background-color:#17a2b8;">Ver productos</a>
+        <a href="{% url 'historial_importaciones' %}" class="import-button" style="background-color:#ffc107; color:#333;">Historial</a>
+        <a href="{% url 'dashboard' %}" class="import-button" style="background-color:#6f42c1;">Dashboard</a>
+    </nav>
+    <table>
+        <thead>
+            <tr>
+                <th>Archivo</th>
+                <th>Fecha</th>
+                <th>Total productos</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for imp in historial %}
+            <tr>
+                <td>{{ imp.archivo_nombre }}</td>
+                <td>{{ imp.fecha|date:"Y-m-d H:i" }}</td>
+                <td>{{ imp.total_productos }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3">No hay importaciones registradas.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html> 

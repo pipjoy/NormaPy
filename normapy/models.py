@@ -7,14 +7,15 @@ from django.core.files.storage import FileSystemStorage
 upload_storage = FileSystemStorage(location='uploads/')
 
 class Importacion(models.Model):
-    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
-    fecha = models.DateTimeField(default=now)
-    archivo_nombre = models.CharField(max_length=255)
-    archivo_original = models.FileField(upload_to='importaciones/', storage=upload_storage, null=True, blank=True)
-    total_productos = models.PositiveIntegerField()
+    archivo = models.FileField(upload_to='importaciones/')
+    nombre_original = models.CharField(max_length=255)
+    fecha_subida = models.DateTimeField(auto_now_add=True)
+    cantidad_productos = models.PositiveIntegerField()
+    columnas_detectadas = models.TextField()
+    se_generaron_skus = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.usuario} – {self.archivo_nombre} ({self.fecha.date()})"
+        return f"Importación del {self.fecha_subida.strftime('%Y-%m-%d %H:%M')}"
 
 class Producto(models.Model):
     importacion = models.ForeignKey(Importacion, on_delete=models.SET_NULL, null=True, blank=True)
@@ -26,3 +27,13 @@ class Producto(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.sku})"
+
+
+class HistorialImportacion(models.Model):
+    nombre_archivo = models.CharField(max_length=255)
+    fecha_importacion = models.DateTimeField(auto_now_add=True)
+    productos_importados = models.IntegerField()
+    errores = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.nombre_archivo} ({self.fecha_importacion.date()})"

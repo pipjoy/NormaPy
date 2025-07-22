@@ -1,8 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Productos importados</title>
+    <link rel="stylesheet" href="{% static 'branding.css' %}">
     <style>
         table { border-collapse: collapse; width: 100%; margin-top: 20px; }
         th, td { border: 1px solid #ccc; padding: 8px; }
@@ -10,18 +12,37 @@
     </style>
 </head>
 <body>
+    <header>
+        <img src="{% static 'normapy/logo.png' %}" alt="Logo NormaPy"> NormaPy
+    </header>
     <h1>Productos importados</h1>
-    <form action="{% url 'exportar_productos' %}" method="get" style="margin-bottom: 20px;">
-        <label for="formato">Exportar como:</label>
-        <select name="formato" id="formato">
-            <option value="xlsx">Excel (.xlsx)</option>
-            <option value="csv">CSV (.csv)</option>
-        </select>
-        <button type="submit">Descargar</button>
-    </form>
-    <form action="{% url 'exportar_json' %}" method="get" style="margin-bottom: 20px; display:inline-block;">
-        <button type="submit">Exportar a JSON</button>
-    </form>
+    <nav style="text-align:center; margin-bottom:20px;">
+        <a href="{% url 'importar_archivo' %}" class="import-button">Importar productos</a>
+        <a href="{% url 'listar_productos' %}" class="import-button" style="background-color:#17a2b8;">Ver productos</a>
+        <a href="{% url 'historial_importaciones' %}" class="import-button" style="background-color:#ffc107; color:#333;">Historial</a>
+        <a href="{% url 'dashboard' %}" class="import-button" style="background-color:#6f42c1;">Dashboard</a>
+    </nav>
+    <div class="upload-section">
+        <form action="{% url 'exportar_productos' %}" method="get" style="margin-bottom: 20px;">
+            <label for="formato">Exportar como:</label>
+            <select name="formato" id="formato">
+                <option value="xlsx">Excel (.xlsx)</option>
+                <option value="csv">CSV (.csv)</option>
+            </select>
+            <button type="submit">Descargar</button>
+        </form>
+        <form action="{% url 'exportar_json' %}" method="get" style="margin-bottom: 20px; display:inline-block;">
+            <button type="submit">Exportar a JSON</button>
+        </form>
+        <form action="{% url 'descargar_normalizado' %}" method="get" style="margin-bottom: 20px; display:inline-block;">
+            <label for="formato2">Descargar archivo normalizado:</label>
+            <select name="formato" id="formato2">
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+            </select>
+            <button type="submit">📥 Descargar archivo normalizado</button>
+        </form>
+    </div>
     <table>
         <thead>
             <tr>
@@ -33,15 +54,19 @@
             </tr>
         </thead>
         <tbody>
-            {% for producto in productos %}
-            <tr>
-                <td>{{ producto.sku }}</td>
-                <td>{{ producto.nombre }}</td>
-                <td>{{ producto.precio }}</td>
-                <td>{{ producto.marca }}</td>
-                <td>{{ producto.stock }}</td>
-            </tr>
-            {% endfor %}
+            {% if productos %}
+                {% for producto in productos %}
+                <tr>
+                    <td>{{ producto.sku }}</td>
+                    <td>{{ producto.nombre }}</td>
+                    <td>{{ producto.precio }}</td>
+                    <td>{{ producto.marca }}</td>
+                    <td>{{ producto.stock }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr><td colspan="5">No hay productos importados.</td></tr>
+            {% endif %}
         </tbody>
     </table>
 </body>

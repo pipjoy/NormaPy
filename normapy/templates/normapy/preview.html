@@ -1,8 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Vista previa de importación – NormaPy</title>
+    <link rel="stylesheet" href="{% static 'branding.css' %}">
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
         h2 { margin-top: 30px; }
@@ -15,74 +17,94 @@
     </style>
 </head>
 <body>
-    <h1>Vista previa de importación – NormaPy</h1>
-
-    <p>
-        <strong>Subir archivo CSV o Excel</strong>
+    <header>
+        <img src="{% static 'normapy/logo.png' %}" alt="Logo NormaPy"> NormaPy
+    </header>
+    <h1>Importación de Productos</h1>
+    <p>NormaPy es una herramienta poderosa para la normalización de datos de productos antes de importarlos a un sistema de inventario.</p>
+    <div class="upload-section">
         <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
             {{ form.as_p }}
+            {% if hojas and hojas|length > 1 %}
+                <label for="hoja">Selecciona una hoja:</label>
+                <select name="hoja" id="hoja">
+                    {% for hoja in hojas %}
+                        <option value="{{ hoja }}">{{ hoja }}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
             <button type="submit">Subir archivo</button>
         </form>
-    </p>
-
+    </div>
     {% if mensaje %}
-        <div class="alert alert-success">
-            {{ mensaje }}
-        </div>
+        <div class="error-message">{{ mensaje }}</div>
     {% endif %}
-
-    <h2>Resumen de mapeo de columnas (editable)</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Columna original</th>
-                <th>Campo detectado</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for campo, col in mapeo.items %}
+    <div class="mapping-section">
+        <h2>Resumen de mapeo de columnas (editable)</h2>
+        <table>
+            <thead>
                 <tr>
-                    <td>{{ col }}</td>
-                    <td>{{ campo }}</td>
+                    <th>Columna original</th>
+                    <th>Campo detectado</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h2>Vista previa de los datos normalizados</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>SKU</th>
-                <th>Nombre</th>
-                <th>Precio</th>
-                <th>Marca</th>
-                <th>Stock</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for producto in preview %}
+            </thead>
+            <tbody>
+                {% for campo, col in mapeo.items %}
+                    <tr>
+                        <td>{{ col }}</td>
+                        <td>{{ campo }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="preview-container">
+        <h3>Vista previa de los datos normalizados</h3>
+        <table>
+            <thead>
                 <tr>
-                    <td>{{ producto.sku }}</td>
-                    <td>{{ producto.nombre }}</td>
-                    <td>{{ producto.precio }}</td>
-                    <td>{{ producto.marca }}</td>
-                    <td>{{ producto.stock }}</td>
+                    <th>SKU</th>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Marca</th>
+                    <th>Stock</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
+            </thead>
+            <tbody>
+                {% for producto in preview %}
+                    <tr>
+                        <td>{{ producto.sku }}</td>
+                        <td>{{ producto.nombre }}</td>
+                        <td>{{ producto.precio }}</td>
+                        <td>{{ producto.marca }}</td>
+                        <td>{{ producto.stock }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if estadisticas %}
+    <div class="summary-container">
+        <h4>Resumen de Importación</h4>
+        <p>Total de productos: {{ estadisticas.total_productos }}</p>
+        <p>Precio promedio: {{ estadisticas.precio_promedio }}</p>
+        <p>Stock total: {{ estadisticas.stock_total }}</p>
+        <p>SKUs generados: {{ estadisticas.skus_generados }}</p>
+        <p>Archivo procesado: {{ estadisticas.archivo_nombre }}</p>
+        <p>Fecha/hora: {{ estadisticas.fecha_hora }}</p>
+    </div>
+    {% endif %}
     {% if preview %}
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST">
             {% csrf_token %}
-            {{ form.as_p }}
             <button type="submit" name="confirmar" value="1">Confirmar importación</button>
+            <button type="submit" name="limpiar" value="1" class="clean-data-button">Limpiar datos</button>
         </form>
-    {% else %}
-        <p>No hay datos para mostrar. Por favor sube un archivo.</p>
     {% endif %}
+    <div class="history-section">
+        <a href="{% url 'historial_importaciones' %}">Ver historial de importaciones</a>
+    </div>
 
     {% if acciones.defaults %}
         <h2>Advertencias</h2>
@@ -95,3 +117,4 @@
 
 </body>
 </html>
+

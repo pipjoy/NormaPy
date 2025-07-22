@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seleccionar hoja de Excel</title>
+</head>
+<body>
+    <h1>Seleccione la hoja a importar</h1>
+    <form method="POST">
+        {% csrf_token %}
+        <select name="hoja" required>
+            {% for hoja in hojas %}
+                <option value="{{ hoja }}">{{ hoja }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Seleccionar</button>
+    </form>
+</body>
+</html> 

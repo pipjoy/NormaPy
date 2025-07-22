@@ -5,6 +5,7 @@ Módulo para la lógica de mapeo automático de columnas.
 import pandas as pd
 import json
 import os
+import re
 from unidecode import unidecode
 from rapidfuzz import fuzz
 import logging
@@ -48,34 +49,22 @@ def aplanar_sinonimos(sin):
 def mapear_columnas(df, sinonimos_global, sinonimos_proveedor=None):
     """Mapea las columnas del archivo CSV/Excel a las columnas internas del sistema utilizando sinónimos."""
     mapeo = {}
-    columnas_no_mapeadas = []
-    for col in df.columns:
-        mapeado = False
-        for clave, sin in sinonimos_global.items():
-            sin_flat = []
-            if isinstance(sin, dict):
-                for v in sin.values():
-                    sin_flat.extend(v)
-            elif isinstance(sin, list):
-                sin_flat = sin
-            else:
-                sin_flat = [sin]
-            if col.lower() in [nombre.lower() for nombre in sin_flat]:
-                mapeo[clave] = col
-                mapeado = True
-                break
-        if not mapeado and sinonimos_proveedor:
-            for proveedor, sin in sinonimos_proveedor.items():
-                if col.lower() in [nombre.lower() for nombre in sin]:
-                    mapeo[clave] = col
-                    mapeado = True
+    campos_no_mapeados = []
+    columnas_archivo = [normalizar_texto(col) for col in df.columns]
+    for campo, lista_sinonimos in sinonimos_global.items():
+        encontrado = False
+        for sin in lista_sinonimos:
+            sin_norm = normalizar_texto(sin)
+            for idx, col_norm in enumerate(columnas_archivo):
+                if col_norm == sin_norm:
+                    mapeo[campo] = df.columns[idx]
+                    encontrado = True
                     break
-        if not mapeado:
-            columnas_no_mapeadas.append(col)
-    print("🔍 Mapeo generado:", mapeo)
-    if columnas_no_mapeadas:
-        print(f"⚠ Las siguientes columnas no se han mapeado: {', '.join(columnas_no_mapeadas)}")
-    return mapeo, columnas_no_mapeadas
+            if encontrado:
+                break
+        if not encontrado:
+            campos_no_mapeados.append(campo)
+    return mapeo, campos_no_mapeados
 
 
 def generar_sku(nombre, marca="", precio=""):

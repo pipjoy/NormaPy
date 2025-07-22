@@ -9,11 +9,15 @@ import json
 import os
 from django.db.models import Count
 from django.http import HttpResponse
+from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
 import json as pyjson
 from django.utils import timezone
 import os
 from django.http import FileResponse
+from unidecode import unidecode
+from datetime import datetime
+from django.db.models import Avg, Sum
 
 # Cargar sinonimos.json desde disco
 SINONIMOS_PATH = os.path.join(os.path.dirname(__file__), 'mapeo', 'sinonimos.json')
@@ -27,25 +31,47 @@ def limpiar_columnas(df):
     return df
 
 def renombrar_columnas(df, mapeo):
-    """Renombra las columnas del DataFrame según el mapeo generado."""
+    # mapeo: {'sku': 'sku', 'name': 'nombre', ...}
     columnas_actuales = df.columns.tolist()
     columnas_a_renombrar = {}
-    for campo, nuevo_nombre in mapeo.items():
-        if nuevo_nombre in columnas_actuales:
-            columnas_a_renombrar[nuevo_nombre] = campo
+    for campo, original in mapeo.items():  # campo = interno (español), original = nombre en archivo
+        if original in columnas_actuales:
+            columnas_a_renombrar[original] = campo  # renombra a español
         else:
-            print(f"⚠ Columna mapeada '{nuevo_nombre}' no encontrada en el archivo.")
-            raise ValueError(f"Columna mapeada '{nuevo_nombre}' no encontrada en el archivo.")
+            print(f"⚠ Columna mapeada '{original}' no encontrada en el archivo.")
+            raise ValueError(f"Columna mapeada '{original}' no encontrada en el archivo.")
     df = df.rename(columns=columnas_a_renombrar)
+    print("Columnas después de renombrar:", df.columns.tolist())
     return df
 
 def limpiar_datos(df):
     """Convierte los valores de las columnas a los tipos correctos (float o int)."""
+    import unidecode
+    if 'nombre' in df.columns:
+        df['nombre'] = df['nombre'].astype(str).str.lower().apply(lambda x: unidecode.unidecode(x.strip()))
+    if 'marca' in df.columns:
+        df['marca'] = df['marca'].astype(str).str.lower().apply(lambda x: unidecode.unidecode(x.strip()))
     if 'precio' in df.columns:
-        df['precio'] = pd.to_numeric(df['precio'], errors='coerce')
+        df['precio'] = pd.to_numeric(df['precio'], errors='coerce').fillna(0)
     if 'stock' in df.columns:
-        df['stock'] = pd.to_numeric(df['stock'], errors='coerce')
+        df['stock'] = pd.to_numeric(df['stock'], errors='coerce').fillna(0).astype(int)
     return df
+
+def mostrar_estadisticas(df, archivo_nombre=None):
+    total_productos = len(df)
+    precio_promedio = df['precio'].mean() if 'precio' in df.columns else 0
+    stock_total = df['stock'].sum() if 'stock' in df.columns else 0
+    skus_generados = df['sku'].apply(lambda x: str(x).startswith("AUTO-")).sum() if 'sku' in df.columns else 0
+    archivo_nombre = archivo_nombre or "Desconocido"
+    fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return {
+        'total_productos': total_productos,
+        'precio_promedio': precio_promedio,
+        'stock_total': stock_total,
+        'skus_generados': skus_generados,
+        'archivo_nombre': archivo_nombre,
+        'fecha_hora': fecha_hora,
+    }
 
 def verificar_columnas_requeridas(df):
     """Verifica que las columnas esenciales estén en el archivo."""
@@ -107,67 +133,79 @@ def depurar_datos(df, mapeo=None):
                 print(f"[DEPURACIÓN][ADVERTENCIA] Columna mapeada '{col}' no encontrada en el DataFrame tras renombrar.")
 
 def importar_archivo(request):
-    form = UploadForm(request.POST, request.FILES)
-    mensaje = None
-    acciones = {}
-    mapeo = {}
+    hojas = []
+    df = None
     preview_data = []
-    if request.method == 'POST' and form.is_valid():
-        archivo = request.FILES['archivo']
-        try:
-            # Leer archivo CSV o Excel
-            if archivo.name.endswith('.csv'):
+    mapeo = {}
+    acciones = {}
+    estadisticas = None
+    mensaje = None
+    form = UploadForm(request.POST, request.FILES)
+    if request.method == 'POST':
+        archivo = request.FILES.get('archivo')
+        hoja_seleccionada = request.POST.get('hoja')
+        if archivo:
+            if archivo.name.endswith('.xlsx'):
+                excel_file = pd.ExcelFile(archivo)
+                hojas = excel_file.sheet_names
+                if hoja_seleccionada:
+                    df = excel_file.parse(hoja_seleccionada)
+                else:
+                    df = excel_file.parse(hojas[0])
+            elif archivo.name.endswith('.csv'):
                 df = pd.read_csv(archivo)
-            elif archivo.name.endswith('.xlsx'):
-                df = pd.read_excel(archivo)
             else:
-                raise ValueError("El archivo debe ser CSV o Excel.")
-            print("Primeras filas del archivo:", df.head())
-
+                mensaje = "El archivo debe ser CSV o Excel."
+        elif hoja_seleccionada and 'archivo' not in request.FILES:
+            mensaje = "Por favor, sube el archivo nuevamente para seleccionar otra hoja."
+        if df is not None:
             from .mapeo.validacion import limpiar_columnas
             df = limpiar_columnas(df)
-            print("Columnas después de limpiar:", df.columns.tolist())
-
             from .mapeo.normalizador import mapear_columnas
-            mapeo, columnas_no_mapeadas = mapear_columnas(df, sinonimos['global'], sinonimos.get('providers', {}))
-            print("🔍 Mapeo generado:", mapeo)
-            if columnas_no_mapeadas:
-                print(f"⚠ Columnas no mapeadas: {', '.join(columnas_no_mapeadas)}")
-
+            mapeo, campos_no_mapeados = mapear_columnas(df, sinonimos['global'], sinonimos.get('providers', {}))
             df = renombrar_columnas(df, mapeo)
-            print("Columnas después de renombrar:", df.columns.tolist())
-
-            # Validar y limpiar datos
-            df['precio'] = pd.to_numeric(df['precio'], errors='coerce')
-            df = df[df['precio'] > 0]
-            df.fillna('Sin dato', inplace=True)
-
-            # Guardar productos en la base de datos
-            from .models import Producto
-            for fila in df.to_dict(orient='records'):
-                Producto.objects.update_or_create(
-                    sku=fila.get("sku"),
-                    defaults={
-                        "nombre": fila.get("nombre"),
-                        "precio": fila.get("precio"),
-                        "stock": fila.get("stock"),
-                        "marca": fila.get("marca"),
-                    }
+            required_columns = ['sku', 'nombre', 'precio', 'stock']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                mensaje = f"Faltan las siguientes columnas obligatorias: {', '.join(missing_columns)}"
+            else:
+                df = limpiar_datos(df)
+                df['marca'] = df['marca'].fillna('Sin Marca') if 'marca' in df.columns else 'Sin Marca'
+                df['nombre'] = df['nombre'].fillna('Sin Nombre')
+                df['sku'] = df['sku'].fillna('SIN-SKU')
+                df_limpio = df.copy()
+                # Guardar productos y log
+                for fila in df_limpio.to_dict(orient='records'):
+                    producto, creado = Producto.objects.update_or_create(
+                        sku=fila.get("sku"),
+                        defaults={
+                            'nombre': fila.get("nombre"),
+                            'precio': fila.get("precio"),
+                            'stock': fila.get("stock"),
+                            'marca': fila.get("marca")
+                        }
+                    )
+                    print(f"Producto {'creado' if creado else 'actualizado'}: {producto.sku}")
+                # Guardar registro de importación
+                Importacion.objects.create(
+                    archivo=archivo,
+                    nombre_original=archivo.name,
+                    cantidad_productos=len(df_limpio),
+                    columnas_detectadas=", ".join(df_limpio.columns.tolist()),
+                    se_generaron_skus=any(df_limpio['sku'].astype(str).str.startswith('AUTO'))
                 )
-
-            # Vista previa
-            preview_data = df.head(3).to_dict(orient='records')
-            mensaje = "¡Productos importados exitosamente!"
-        except Exception as e:
-            form.add_error('archivo', f'Error procesando el archivo: {e}')
-            print("[ERROR]", e)
-    return render(request, 'normapy/preview.html', {
-        'form': form,
-        'mapeo': mapeo,
-        'acciones': acciones,
-        'preview': preview_data,
-        'mensaje': mensaje
-    })
+                preview_data = df_limpio.head(3).to_dict(orient='records')
+                estadisticas = mostrar_estadisticas(df_limpio, archivo_nombre=archivo.name)
+        return render(request, 'normapy/preview.html', {
+            'form': form,
+            'hojas': hojas,
+            'mapeo': mapeo,
+            'acciones': acciones,
+            'preview': preview_data,
+            'mensaje': mensaje,
+            'estadisticas': estadisticas
+        })
+    return render(request, 'normapy/preview.html', {'form': form, 'hojas': hojas})
 
 def listar_productos(request):
     productos = Producto.objects.all()
@@ -208,29 +246,40 @@ def exportar_json(request):
     # Descargar el archivo
     return FileResponse(open(filepath, 'rb'), as_attachment=True, filename=filename)
 
-def dashboard(request):
-    total_productos = Producto.objects.count()
-    total_importaciones = Importacion.objects.count()
-    ultimo_archivo = Importacion.objects.order_by('-fecha').first()
-    productos_por_marca = Producto.objects.values('marca').annotate(total=Count('id')).order_by('-total')
-    usuario_top = Importacion.objects.values('usuario__username').annotate(total=Count('id')).order_by('-total').first()
-    importaciones_por_mes = (
-        Importacion.objects.extra(select={'mes': "strftime('%%Y-%%m', fecha)"}).values('mes')
-        .annotate(total=Count('id')).order_by('mes')
-    )
+def descargar_normalizado(request):
+    formato = request.GET.get('formato', 'csv')
+    from .models import Producto
+    productos = Producto.objects.all().values('sku', 'nombre', 'precio', 'marca', 'stock')
+    df = pd.DataFrame(list(productos))
 
+    if formato == 'json':
+        response = HttpResponse(content_type='application/json')
+        response['Content-Disposition'] = 'attachment; filename="productos_normalizados.json"'
+        response.write(df.to_json(orient='records', force_ascii=False))
+    else:
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="productos_normalizados.csv"'
+        df.to_csv(path_or_buffer=response, index=False)
+    return response
+
+# Dashboard mejorado
+def dashboard(request):
+    total_importaciones = Importacion.objects.count()
+    productos = Producto.objects.count()
+    total_stock = Producto.objects.aggregate(Sum('stock'))['stock__sum'] or 0
+    precio_promedio = Producto.objects.aggregate(Avg('precio'))['precio__avg'] or 0
+    skus_generados = Producto.objects.filter(sku__startswith='AUTO').count()
     return render(request, 'normapy/dashboard.html', {
-        'total_productos': total_productos,
         'total_importaciones': total_importaciones,
-        'ultimo_archivo': ultimo_archivo,
-        'productos_por_marca': productos_por_marca,
-        'usuario_top': usuario_top,
-        'importaciones_por_mes': importaciones_por_mes,
+        'productos': productos,
+        'total_stock': total_stock,
+        'precio_promedio': precio_promedio,
+        'skus_generados': skus_generados
     })
 
 def historial_importaciones(request):
     from .models import Importacion
-    historial = Importacion.objects.all().order_by('-fecha')
+    historial = Importacion.objects.all().order_by('-fecha_subida')
     return render(request, 'normapy/historial.html', {'historial': historial})
 
 def productos_por_importacion(request, importacion_id):
