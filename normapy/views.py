@@ -91,22 +91,6 @@ def validar_mapeo(mapeo, df_columns):
     print("🗺️ Mapeo generado:", mapeo)
     return True
 
-def mapear_columnas(df, sinonimos_global, sinonimos_proveedor=None):
-    """Mapea las columnas del archivo CSV/Excel a las columnas internas del sistema."""
-    mapeo = {}
-    for col in df.columns:
-        # Intentar mapear las columnas usando los sinónimos globales
-        for clave, sin in sinonimos_global.items():
-            if col in sin:
-                mapeo[clave] = col
-                break
-        # Si no se encuentra, intentar con sinónimos del proveedor (si existen)
-        if clave not in mapeo and sinonimos_proveedor:
-            for clave, sin in sinonimos_proveedor.items():
-                if col in sin:
-                    mapeo[clave] = col
-                    break
-    return mapeo
 
 def validar_columnas_vacias(df):
     """Verifica que no haya valores vacíos en las columnas requeridas."""
