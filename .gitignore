@@ -22,3 +22,9 @@ ENV/
 
 # Backup files
 *~
+
+# Media files
+media/
+
+# Imported CSVs
+importaciones/*.csv
