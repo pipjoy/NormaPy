@@ -138,21 +138,51 @@ def importar_archivo(request):
             importacion = Importacion.objects.create(
                 archivo=archivo,
                 nombre_original=nombre_archivo,
-                cantidad_productos=len(df),
+                cantidad_productos=0,
                 columnas_detectadas=", ".join(df.columns.tolist()),
                 se_generaron_skus=any(df['sku'].astype(str).str.startswith('AUTO')),
             )
-            for fila in df.to_dict(orient='records'):
-                Producto.objects.update_or_create(
-                    sku=fila.get("sku"),
-                    defaults={
-                        'nombre': fila.get("nombre"),
-                        'precio': fila.get("precio"),
-                        'stock': fila.get("stock"),
-                        'marca': fila.get("marca"),
-                        'importacion': importacion,
-                    },
+
+            registros = df.to_dict(orient='records')
+            skus = [r.get("sku") for r in registros]
+            existentes = Producto.objects.filter(sku__in=skus)
+            existentes_map = {p.sku: p for p in existentes}
+            productos_nuevos = []
+            productos_actualizar = []
+
+            for fila in registros:
+                sku = fila.get("sku")
+                if sku in existentes_map:
+                    prod = existentes_map[sku]
+                    prod.nombre = fila.get("nombre")
+                    prod.precio = fila.get("precio")
+                    prod.stock = fila.get("stock")
+                    prod.marca = fila.get("marca")
+                    prod.importacion = importacion
+                    productos_actualizar.append(prod)
+                else:
+                    productos_nuevos.append(
+                        Producto(
+                            importacion=importacion,
+                            sku=sku,
+                            nombre=fila.get("nombre"),
+                            precio=fila.get("precio"),
+                            stock=fila.get("stock"),
+                            marca=fila.get("marca"),
+                        )
+                    )
+
+            if productos_nuevos:
+                Producto.objects.bulk_create(productos_nuevos)
+            if productos_actualizar:
+                Producto.objects.bulk_update(
+                    productos_actualizar,
+                    ["nombre", "precio", "stock", "marca", "importacion"],
                 )
+
+            procesados = len(productos_nuevos) + len(productos_actualizar)
+            importacion.cantidad_productos = procesados
+            importacion.save()
             request.session.pop('import_df', None)
             request.session.pop('archivo_nombre', None)
             return redirect('historial_importaciones')
