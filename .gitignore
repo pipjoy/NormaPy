@@ -12,6 +12,7 @@ db.sqlite3
 
 # Environments
 .env
+!frontend/.env
 .venv
 env/
 venv/
