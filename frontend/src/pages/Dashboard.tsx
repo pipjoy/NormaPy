@@ -13,7 +13,7 @@ export default function Dashboard() {
   const [productos, setProductos] = useState<Producto[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/productos/")
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/productos/`)
       .then((res) => res.json())
       .then(setProductos)
       .catch((err) => console.error("Error:", err));
