@@ -13,7 +13,6 @@ from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
 import json as pyjson
 from django.utils import timezone
-import os
 from django.http import FileResponse
 from unidecode import unidecode
 from datetime import datetime
@@ -46,11 +45,10 @@ def renombrar_columnas(df, mapeo):
 
 def limpiar_datos(df):
     """Convierte los valores de las columnas a los tipos correctos (float o int)."""
-    import unidecode
     if 'nombre' in df.columns:
-        df['nombre'] = df['nombre'].astype(str).str.lower().apply(lambda x: unidecode.unidecode(x.strip()))
+        df['nombre'] = df['nombre'].astype(str).str.lower().apply(lambda x: unidecode(x.strip()))
     if 'marca' in df.columns:
-        df['marca'] = df['marca'].astype(str).str.lower().apply(lambda x: unidecode.unidecode(x.strip()))
+        df['marca'] = df['marca'].astype(str).str.lower().apply(lambda x: unidecode(x.strip()))
     if 'precio' in df.columns:
         df['precio'] = pd.to_numeric(df['precio'], errors='coerce').fillna(0)
     if 'stock' in df.columns:
@@ -196,7 +194,6 @@ def importar_archivo(request):
         if df is not None:
             from .mapeo.validacion import limpiar_columnas
             df = limpiar_columnas(df)
-            from .mapeo.normalizador import mapear_columnas
             mapeo, _ = mapear_columnas(df, sinonimos['global'], sinonimos.get('providers', {}))
             df = renombrar_columnas(df, mapeo)
             required_columns = ['sku', 'nombre', 'precio', 'stock']
@@ -272,7 +269,6 @@ def exportar_json(request):
 
 def descargar_normalizado(request):
     formato = request.GET.get('formato', 'csv')
-    from .models import Producto
     productos = Producto.objects.all().values('sku', 'nombre', 'precio', 'marca', 'stock')
     df = pd.DataFrame(list(productos))
 
@@ -302,12 +298,10 @@ def dashboard(request):
     })
 
 def historial_importaciones(request):
-    from .models import Importacion
     historial = Importacion.objects.all().order_by('-fecha_subida')
     return render(request, 'normapy/historial.html', {'historial': historial})
 
 def productos_por_importacion(request, importacion_id):
-    from .models import Producto
     productos = Producto.objects.filter(importacion_id=importacion_id)
     return render(request, 'normapy/productos_por_importacion.html', {'productos': productos, 'importacion_id': importacion_id})
 
