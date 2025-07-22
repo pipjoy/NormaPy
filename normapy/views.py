@@ -11,7 +11,10 @@ from django.db.models import Count
 from django.http import HttpResponse
 from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
+codex/remove-duplicate-limpiar_columnas-in-views.py
+from .mapeo.validacion import limpiar_columnas
 from .utils.logger import logger
+main
 import json as pyjson
 from django.utils import timezone
 from django.http import FileResponse
@@ -23,12 +26,6 @@ from django.db.models import Avg, Sum
 SINONIMOS_PATH = os.path.join(os.path.dirname(__file__), 'mapeo', 'sinonimos.json')
 with open(SINONIMOS_PATH, encoding='utf-8') as f:
     sinonimos = json.load(f)
-
-def limpiar_columnas(df):
-    """Limpia los nombres de las columnas para evitar errores por espacios o caracteres invisibles."""
-    df.columns = df.columns.str.strip()  # Elimina espacios al inicio y al final
-    df.columns = df.columns.str.lower()  # Convierte a minúsculas para evitar problemas de mayúsculas
-    return df
 
 def renombrar_columnas(df, mapeo):
     # mapeo: {'sku': 'sku', 'name': 'nombre', ...}
@@ -215,7 +212,6 @@ def importar_archivo(request):
             mensaje = "Por favor, sube el archivo nuevamente para seleccionar otra hoja."
 
         if df is not None:
-            from .mapeo.validacion import limpiar_columnas
             df = limpiar_columnas(df)
             mapeo = mapear_columnas(df, sinonimos['global'], sinonimos.get('providers', {}))
             df = renombrar_columnas(df, mapeo)
