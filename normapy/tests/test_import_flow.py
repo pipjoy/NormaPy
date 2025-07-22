@@ -23,3 +23,36 @@ class ImportFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Producto.objects.count(), 2)
         self.assertEqual(Importacion.objects.count(), 1)
+
+    def test_xls_multiple_sheets_preview(self):
+        import xlwt
+        workbook = xlwt.Workbook()
+        headers = ["sku", "nombre", "precio", "marca", "stock"]
+        sheet1 = workbook.add_sheet("Hoja1")
+        for idx, h in enumerate(headers):
+            sheet1.write(0, idx, h)
+        sheet1.write(1, 0, "A1")
+        sheet1.write(1, 1, "Producto1")
+        sheet1.write(1, 2, 10.0)
+        sheet1.write(1, 3, "M1")
+        sheet1.write(1, 4, 1)
+
+        sheet2 = workbook.add_sheet("Hoja2")
+        for idx, h in enumerate(headers):
+            sheet2.write(0, idx, h)
+        sheet2.write(1, 0, "A2")
+        sheet2.write(1, 1, "Producto2")
+        sheet2.write(1, 2, 20.0)
+        sheet2.write(1, 3, "M2")
+        sheet2.write(1, 4, 2)
+
+        buffer = BytesIO()
+        workbook.save(buffer)
+        buffer.seek(0)
+        buffer.name = "test.xls"
+
+        response = self.client.post(reverse("importar_archivo"), {"archivo": buffer})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("preview", response.context)
+        self.assertEqual(len(response.context["hojas"]), 2)
+

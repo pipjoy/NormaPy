@@ -11,10 +11,8 @@ from django.db.models import Count
 from django.http import HttpResponse
 from .utils.limpieza import limpieza_basica
 from .mapeo.normalizador import mapear_columnas  # Usar la versión extendida
-codex/remove-duplicate-limpiar_columnas-in-views.py
 from .mapeo.validacion import limpiar_columnas
 from .utils.logger import logger
-main
 import json as pyjson
 from django.utils import timezone
 from django.http import FileResponse
@@ -199,6 +197,13 @@ def importar_archivo(request):
         if archivo:
             if archivo.name.endswith('.xlsx'):
                 excel_file = pd.ExcelFile(archivo)
+                hojas = excel_file.sheet_names
+                if hoja_seleccionada:
+                    df = excel_file.parse(hoja_seleccionada)
+                else:
+                    df = excel_file.parse(hojas[0])
+            elif archivo.name.endswith('.xls'):
+                excel_file = pd.ExcelFile(archivo, engine="xlrd")
                 hojas = excel_file.sheet_names
                 if hoja_seleccionada:
                     df = excel_file.parse(hoja_seleccionada)
