@@ -16,10 +16,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from normapy import views as normapy_views
+from rest_framework.routers import DefaultRouter
+from normapy.views import ProductoViewSet, importar, dashboard, bienvenida
+
+router = DefaultRouter()
+router.register(r'productos', ProductoViewSet, basename='producto')
 
 urlpatterns = [
+    path('api/', include(router.urls)),
+    path('api-auth/', include('rest_framework.urls')),
+    path('importar/', importar),
+    path('dashboard/', dashboard),
     path('admin/', admin.site.urls),
-    path('importar/', include('normapy.urls')),
-    path('', normapy_views.bienvenida, name='bienvenida'),
+    path('', bienvenida, name='bienvenida'),
 ]
