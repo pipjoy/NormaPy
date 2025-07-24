@@ -17,27 +17,18 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from normapy.views import ProductoViewSet, bienvenida
-from normapy.views import (
-    ProductoViewSet,
-    importar_archivo,
-    dashboard,
-    bienvenida,
-)
+from normapy import views
 
 
 router = DefaultRouter()
-router.register(r'productos', ProductoViewSet, basename='producto')
+router.register(r'productos', views.ProductoViewSet, basename='producto')
 
 urlpatterns = [
     path('api/', include(router.urls)),
     path('api-auth/', include('rest_framework.urls')),
-    path('importar/', importar_archivo),
-    path('dashboard/', dashboard, name='dashboard'),
+    path('importar/', views.importar, name='importar'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     path('admin/', admin.site.urls),
-    path('importar/', include('normapy.urls')),
-    path('importar/', importar_react),
-    path('admin/', admin.site.urls),
+    path('', views.bienvenida, name='bienvenida'),
     path('', include('normapy.urls')),
-    path('', bienvenida, name='bienvenida'),
 ]

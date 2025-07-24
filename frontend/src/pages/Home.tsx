@@ -9,6 +9,7 @@ export default function Home() {
         <p className="mt-2 text-gray-500">
           Sistema inteligente de importación y normalización de productos
         </p>
+        <div>PRUEBA BOTÓN ABAJO</div>
         <Link
           to="/importar"
           className="inline-block mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

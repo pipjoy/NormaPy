@@ -19,11 +19,35 @@ from datetime import datetime
 from django.db.models import Avg, Sum
 from rest_framework.viewsets import ModelViewSet
 from .serializers import ProductoSerializer
+from rest_framework.decorators import api_view
+from django.http import JsonResponse
+import pandas as pd
 
 # Cargar sinonimos.json desde disco
 SINONIMOS_PATH = os.path.join(os.path.dirname(__file__), 'mapeo', 'sinonimos.json')
 with open(SINONIMOS_PATH, encoding='utf-8') as f:
     sinonimos = json.load(f)
+
+@api_view(['POST'])
+def upload_file(request):
+    file = request.FILES.get('file')
+
+    if not file:
+        return JsonResponse({'error': 'No se recibió ningún archivo.'}, status=400)
+
+    try:
+        if file.name.endswith('.csv'):
+            df = pd.read_csv(file)
+        elif file.name.endswith('.xlsx'):
+            df = pd.read_excel(file, engine='openpyxl')
+        else:
+            return JsonResponse({'error': 'Formato no soportado.'}, status=400)
+
+        data = df.head().to_dict(orient='records')
+        return JsonResponse(data, safe=False)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 def renombrar_columnas(df, mapeo):
     # mapeo: {'sku': 'sku', 'name': 'nombre', ...}
@@ -366,10 +390,132 @@ def bienvenida(request):
 class ProductoViewSet(ModelViewSet):
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer
-def importar_react(request):
-    """Placeholder view served by the React frontend."""
-    from django.http import HttpResponse
-    return HttpResponse("Página de Importar (servida por React)")
+
+def importar(request):
+    import pandas as pd
+    import os
+    import json
+    from normapy.mapeo import normalizador
+    from normapy.mapeo.normalizador import mapear_columnas, normalizar_nombre
+    from .models import Producto, Importacion
+    from django.core.files.base import ContentFile
+    from django.shortcuts import redirect
+    mensaje = None
+    preview = None
+    mapeo = None
+    if request.method == 'POST' and request.POST.get('confirmar') == '1':
+        # Confirmación: guardar en base de datos
+        df_json = request.session.get('import_df')
+        mapeo_json = request.session.get('mapeo')
+        if df_json and mapeo_json:
+            df = pd.read_json(df_json)
+            mapeo = json.loads(mapeo_json)
+            nombre_archivo = request.session.get('archivo_nombre', 'importacion.csv')
+            csv_content = df.to_csv(index=False)
+            archivo = ContentFile(csv_content.encode('utf-8'), name=nombre_archivo)
+            importacion = Importacion.objects.create(
+                archivo=archivo,
+                nombre_original=nombre_archivo,
+                cantidad_productos=0,
+                columnas_detectadas=", ".join(df.columns.tolist()),
+                se_generaron_skus=any(df['sku'].astype(str).str.startswith('AUTO')),
+            )
+            registros = df.to_dict(orient='records')
+            skus = [r.get("sku") for r in registros]
+            existentes = Producto.objects.filter(sku__in=skus)
+            existentes_map = {p.sku: p for p in existentes}
+            productos_nuevos = []
+            productos_actualizar = []
+            for fila in registros:
+                sku = fila.get("sku")
+                if sku in existentes_map:
+                    prod = existentes_map[sku]
+                    prod.nombre = fila.get("nombre")
+                    prod.precio = fila.get("precio")
+                    prod.stock = fila.get("stock")
+                    prod.marca = fila.get("marca")
+                    prod.importacion = importacion
+                    productos_actualizar.append(prod)
+                else:
+                    productos_nuevos.append(
+                        Producto(
+                            importacion=importacion,
+                            sku=sku,
+                            nombre=fila.get("nombre"),
+                            precio=fila.get("precio"),
+                            stock=fila.get("stock"),
+                            marca=fila.get("marca"),
+                        )
+                    )
+            if productos_nuevos:
+                Producto.objects.bulk_create(productos_nuevos)
+            if productos_actualizar:
+                Producto.objects.bulk_update(
+                    productos_actualizar,
+                    ["nombre", "precio", "stock", "marca", "importacion"],
+                )
+            procesados = len(productos_nuevos) + len(productos_actualizar)
+            importacion.cantidad_productos = procesados
+            importacion.save()
+            request.session.pop('import_df', None)
+            request.session.pop('archivo_nombre', None)
+            request.session.pop('mapeo', None)
+            return redirect('historial_importaciones')
+        else:
+            mensaje = "No hay datos para importar."
+    elif request.method == 'POST' and request.POST.get('ajustar_mapeo') == '1':
+        # Ajuste manual del mapeo
+        df_json = request.session.get('import_df')
+        if df_json:
+            df = pd.read_json(df_json)
+            # Reconstruir mapeo desde el POST
+            mapeo = {}
+            for campo in request.POST:
+                if campo.startswith('mapeo_'):
+                    key = campo.replace('mapeo_', '')
+                    mapeo[key] = request.POST[campo]
+            # Guardar mapeo en sesión
+            request.session['mapeo'] = json.dumps(mapeo)
+            # Normalizar con el nuevo mapeo
+            df_norm, mapeo, sku_generado = normalizador.normalizar_df(df, mapeo)
+            preview = df_norm.head(5).to_dict(orient='records')
+            mensaje = "Mapeo actualizado. Revisa la vista previa antes de confirmar la importación."
+        else:
+            mensaje = "No hay datos para ajustar el mapeo."
+    elif request.method == 'POST':
+        archivo = request.FILES.get('archivo')
+        if archivo:
+            try:
+                if archivo.name.endswith('.csv'):
+                    df = pd.read_csv(archivo)
+                elif archivo.name.endswith(('.xls', '.xlsx')):
+                    df = pd.read_excel(archivo)
+                else:
+                    mensaje = "Formato de archivo no soportado."
+                    return render(request, 'normapy/importar.html', {'mensaje': mensaje})
+                # Usar la nueva función de mapeo robusto
+                mapeo = mapear_columnas(list(df.columns), df)
+                df_norm, mapeo, sku_generado = normalizador.normalizar_df(df, mapeo)
+                preview = df_norm.head(5).to_dict(orient='records')
+                # Guardar en sesión para confirmar y para edición de mapeo
+                request.session['import_df'] = df_norm.to_json(orient='records')
+                request.session['archivo_nombre'] = archivo.name
+                request.session['mapeo'] = json.dumps(mapeo)
+                mensaje = f"Archivo procesado correctamente. Filas: {len(df_norm)}. Haz clic en 'Confirmar importación' para guardar los productos o ajusta el mapeo si es necesario."
+            except Exception as e:
+                mensaje = f"Error al procesar el archivo: {e}"
+        else:
+            mensaje = "No se recibió archivo."
+    else:
+        # Si hay datos en sesión, los muestro para edición de mapeo
+        df_json = request.session.get('import_df')
+        mapeo_json = request.session.get('mapeo')
+        if df_json and mapeo_json:
+            df = pd.read_json(df_json)
+            mapeo = json.loads(mapeo_json)
+            df_norm, mapeo, sku_generado = normalizador.normalizar_df(df, mapeo)
+            preview = df_norm.head(5).to_dict(orient='records')
+    return render(request, 'normapy/importar.html', {'mensaje': mensaje, 'preview': preview, 'mapeo': mapeo})
 
 
 def dashboard_react(request):

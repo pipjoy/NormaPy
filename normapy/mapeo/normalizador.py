@@ -7,7 +7,10 @@ from unidecode import unidecode
 import logging
 import sys
 import hashlib
+from .sinonimos import cargar_sinonimos
 from .heuristicas import HEURISTICAS
+import unicodedata
+import re
 
 # Configuración básica de logger (usando utils/logger.py si está implementado)
 logger = logging.getLogger("normapy.mapeo.normalizador")
@@ -28,6 +31,17 @@ def normalizar_texto(s):
     return s
 
 
+def normalizar_nombre(nombre: str) -> str:
+    """
+    Normaliza un nombre eliminando acentos, guiones, espacios y convirtiendo a minúsculas.
+    Ejemplo: "Precio Venta" → "precioventa"
+    """
+    nombre = unicodedata.normalize('NFKD', nombre)
+    nombre = nombre.encode('ascii', 'ignore').decode('utf-8')
+    nombre = re.sub(r'[^a-zA-Z0-9]', '', nombre)
+    return nombre.lower()
+
+
 def aplanar_sinonimos(sin):
     """Convierte un dict de idiomas a una lista plana de sinónimos."""
     if isinstance(sin, dict):
@@ -43,37 +57,30 @@ def aplanar_sinonimos(sin):
     else:
         return [sin]
 
-def mapear_columnas(df, sinonimos_global, sinonimos_proveedor=None):
-    """Mapea las columnas del archivo CSV/Excel a las columnas internas del sistema utilizando sinónimos."""
-    mapeo: dict[str, str] = {}
-    columnas_archivo = [normalizar_texto(col) for col in df.columns]
+def mapear_columnas(columnas_archivo: list[str], df: pd.DataFrame) -> dict[str, str]:
+    """
+    Devuelve un mapeo campo_interno → nombre_columna_archivo usando sinónimos + heurísticas.
+    """
+    sinonimos = cargar_sinonimos()  # {"nombre": ["producto", ...], ...}
+    columnas_normalizadas = {normalizar_texto(c): c for c in columnas_archivo}
+    mapeo = {}
 
-    sinonimos = {k: list(v) for k, v in sinonimos_global.items()}
-    if sinonimos_proveedor:
-        for campo, lista in sinonimos_proveedor.items():
-            sinonimos.setdefault(campo, [])
-            sinonimos[campo].extend(aplanar_sinonimos(lista))
-
-    # Primero intenta por coincidencia directa con sinónimos
-    for campo, lista_sinonimos in sinonimos.items():
-        encontrado = False
-        for sin in lista_sinonimos:
-            sin_norm = normalizar_texto(sin)
-            for idx, col_norm in enumerate(columnas_archivo):
-                if col_norm == sin_norm:
-                    mapeo[campo] = df.columns[idx]
-                    encontrado = True
-                    break
-            if encontrado:
+    # 1. Buscar coincidencias exactas con sinónimos
+    for campo_interno, alias_posibles in sinonimos.items():
+        for alias in alias_posibles:
+            alias_normalizado = normalizar_texto(alias)
+            if alias_normalizado in columnas_normalizadas:
+                mapeo[campo_interno] = columnas_normalizadas[alias_normalizado]
                 break
 
-    # Si faltan columnas, intenta heurísticas
-    for campo, funcion in HEURISTICAS.items():
-        if campo not in mapeo:
-            df_restante = df.drop(columns=list(mapeo.values()), errors='ignore')
-            col = funcion(df_restante)
-            if col and col not in mapeo.values():
-                mapeo[campo] = col
+    # 2. Fallback: heurísticas para campos no mapeados
+    campos_faltantes = [c for c in sinonimos if c not in mapeo]
+    if campos_faltantes:
+        from .heuristicas import aplicar_heuristicas
+        heuristicas_resultado = aplicar_heuristicas(columnas_archivo, df)
+        for campo in campos_faltantes:
+            if campo in heuristicas_resultado:
+                mapeo[campo] = heuristicas_resultado[campo]
 
     return mapeo
 

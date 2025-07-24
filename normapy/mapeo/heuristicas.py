@@ -101,3 +101,29 @@ HEURISTICAS = {
     'nombre': detectar_columna_nombre,
     'marca': detectar_columna_marca,
 }
+
+
+def aplicar_heuristicas(columnas_archivo: list[str], df: pd.DataFrame) -> dict[str, str]:
+    """
+    Intenta detectar columnas clave usando heurísticas.
+    """
+    resultado = {}
+    for columna in columnas_archivo:
+        serie = df[columna]
+        # Heurística para precio: mayoría numérica con decimales
+        if (serie.dropna().apply(lambda x: isinstance(x, (int, float)) and x > 0).mean() > 0.8 and
+            serie.dropna().apply(lambda x: float(x) != int(float(x))).mean() > 0.5):
+            resultado["precio"] = columna
+        # Heurística para stock: mayoría enteros
+        elif serie.dropna().apply(lambda x: str(x).isdigit()).mean() > 0.8:
+            resultado["stock"] = columna
+        # Heurística para sku: muchos valores únicos, no numéricos
+        elif serie.nunique() > 0.8 * len(serie) and serie.dropna().apply(lambda x: not str(x).isdigit()).mean() > 0.8:
+            resultado["sku"] = columna
+        # Heurística para nombre: texto, muchos únicos
+        elif serie.dropna().apply(lambda x: isinstance(x, str)).mean() > 0.8 and serie.nunique() > 0.5 * len(serie):
+            resultado["nombre"] = columna
+        # Heurística para marca: texto, pocos únicos
+        elif serie.dropna().apply(lambda x: isinstance(x, str)).mean() > 0.8 and serie.nunique() < 0.2 * len(serie):
+            resultado["marca"] = columna
+    return resultado

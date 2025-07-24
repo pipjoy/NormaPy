@@ -1,10 +1,9 @@
-import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
-import Importar from "./pages/Importar";
-import Dashboard from "./pages/Dashboard";
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import Home from './pages/Home';
+import Importar from './pages/Importar';
+import Dashboard from './pages/Dashboard';
 
-export default function App() {
+function App() {
   return (
     <BrowserRouter>
       <Routes>
@@ -14,4 +13,6 @@ export default function App() {
       </Routes>
     </BrowserRouter>
   );
-} 
+}
+
+export default App; 

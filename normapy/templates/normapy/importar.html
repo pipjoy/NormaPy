@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Importar productos – NormaPy</title>
+    <link rel="stylesheet" href="{% static 'branding.css' %}">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { margin-bottom: 20px; }
+        .import-section { margin: 30px 0; }
+        .error-message { color: #fff; background: #d9534f; padding: 12px; border-radius: 6px; margin: 20px 0; font-weight: bold; text-align: center; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="{% static 'normapy/logo.png' %}" alt="Logo NormaPy" style="height:50px;"> NormaPy
+    </header>
+    <h1>Importar productos</h1>
+    <nav style="text-align:center; margin-bottom:20px;">
+        <a href="{% url 'importar' %}" class="import-button">Importar productos</a>
+        <a href="{% url 'listar_productos' %}" class="import-button" style="background-color:#17a2b8;">Ver productos</a>
+        <a href="{% url 'historial_importaciones' %}" class="import-button" style="background-color:#ffc107; color:#333;">Historial</a>
+        <a href="{% url 'dashboard' %}" class="import-button" style="background-color:#6f42c1;">Dashboard</a>
+    </nav>
+    <div class="import-section">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" name="archivo">
+            <button type="submit">Subir archivo</button>
+        </form>
+    </div>
+    {% if mensaje %}
+        {% if 'correctamente' in mensaje or 'Haz clic en' in mensaje %}
+        <div class="error-message" style="background: #28a745; color: #fff;">
+            {{ mensaje }}
+        </div>
+        {% else %}
+        <div class="error-message" style="background: #d9534f; color: #fff;">
+            {{ mensaje }}
+        </div>
+        {% endif %}
+    {% endif %}
+    {% if preview %}
+    <div style="margin-top:30px;">
+        <h3>Vista previa de los primeros 5 registros normalizados</h3>
+        <table border="1" cellpadding="6" style="border-collapse:collapse;">
+            <tr>
+                {% for key in preview.0.keys %}
+                    <th>{{ key }}</th>
+                {% endfor %}
+            </tr>
+            {% for fila in preview %}
+                <tr>
+                    {% for val in fila.values %}
+                        <td>{{ val }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div style="text-align:center; margin: 30px 0 0 0;">
+        <form method="POST" style="display:inline-block;">
+            {% csrf_token %}
+            <input type="hidden" name="confirmar" value="1">
+            <button type="submit" style="background:#218838;color:#fff;padding:14px 32px;border:none;border-radius:7px;font-size:1.2em;box-shadow:0 2px 8px #0002;cursor:pointer;">✅ Confirmar importación y guardar productos</button>
+        </form>
+    </div>
+    {% endif %}
+    {% if mapeo and preview %}
+    <div style="margin-top:30px;">
+        <button type="button" onclick="const x=document.getElementById('mapeo-table');x.style.display=x.style.display==='none'?'block':'none';this.innerText=x.style.display==='none'?'Mostrar mapeo de columnas':'Ocultar mapeo de columnas';" style="background:#007bff;color:#fff;padding:8px 18px;border:none;border-radius:5px;font-size:1em;cursor:pointer;">Mostrar mapeo de columnas</button>
+        <div id="mapeo-table" style="display:none; margin-top:15px;">
+            <h3>Mapeo de columnas detectado (editable)</h3>
+            <form method="POST" style="margin-bottom:0;">
+                {% csrf_token %}
+                <input type="hidden" name="ajustar_mapeo" value="1">
+                <table border="1" cellpadding="6" style="border-collapse:collapse;">
+                    <tr><th>Campo interno</th><th>Columna del archivo</th></tr>
+                    {% for campo, col in mapeo.items %}
+                        <tr>
+                            <td>{{ campo }}</td>
+                            <td>
+                                <select name="mapeo_{{ campo }}">
+                                    {% for columna in preview.0.keys %}
+                                        <option value="{{ columna }}" {% if columna == col %}selected{% endif %}>{{ columna }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+                <div style="text-align:right;margin-top:10px;">
+                    <button type="submit" style="background:#17a2b8;color:#fff;padding:8px 18px;border:none;border-radius:5px;font-size:1em;cursor:pointer;">Actualizar mapeo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</body>
+</html> 

@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('', views.importar_archivo, name='importar_archivo'),  # Página principal
+    # path('', views.importar_archivo, name='importar_archivo'),  # Página principal
     path('historial/', views.historial_importaciones, name='historial_importaciones'),
     path('historial/<int:importacion_id>/productos/',
          views.productos_por_importacion,
@@ -14,6 +14,7 @@ urlpatterns = [
     path('exportar_productos/', views.exportar_productos, name='exportar_productos'),
     path('exportar_json/', views.exportar_json, name='exportar_json'),
     path('descargar_normalizado/', views.descargar_normalizado, name='descargar_normalizado'),
+    path('api/upload/', views.upload_file, name='upload_file'),
 ]
 
 # Servir archivos media y estáticos en desarrollo
